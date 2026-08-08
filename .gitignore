@@ -19,3 +19,8 @@ contracts/broadcast/
 *.log
 web/next-env.d.ts
 web/.next-env.d.ts
+
+# Secrets — never commit. Keys belong in Vercel env vars or .env.local.
+9routerkey.md
+*.key
+secrets*.md
