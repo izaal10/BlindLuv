@@ -115,8 +115,16 @@ export default function Home() {
   const iStaked = Boolean(onchainSession && (iAmA ? onchainSession.stakedA : onchainSession.stakedB));
   const iConfirmed = Boolean(onchainSession && (iAmA ? onchainSession.confirmedA : onchainSession.confirmedB));
 
-  /** How far the flow has actually got — drives which steps unlock. */
-  const furthest: StepIndex = revealed ? 3 : sessionId ? 2 : matches.length > 0 ? 1 : 0;
+  /**
+   * How far the flow may go — which is not the same as how far it has *got*.
+   *
+   * Step 3 is where you pay to reveal, so it has to be reachable *before*
+   * anything is revealed; gating it on `revealed` made the "unlock their
+   * identity" button a no-op, since `setViewing(3)` was silently clamped back
+   * to 2 on the very next line. The precondition for step 3 is the on-chain
+   * one: both sides staked, so the session is unlocked.
+   */
+  const furthest: StepIndex = revealed || bothStaked ? 3 : sessionId ? 2 : matches.length > 0 ? 1 : 0;
   const step: StepIndex = viewing !== null && viewing <= furthest ? viewing : furthest;
 
   const guard = useCallback(
@@ -276,7 +284,9 @@ export default function Home() {
     });
     setStakeTx(receipt.transactionHash);
     await refetchSession();
-    setNote("Your stake is locked. Nothing is revealed until the other side stakes too.");
+    // Says nothing about the other side: this note outlives the moment it was
+    // written, and "waiting for them" reads as broken once they have staked.
+    setNote("Your stake is locked in. You get all of it back when you both confirm you met.");
   });
 
   const confirmAttendance = guard("confirm", async () => {
