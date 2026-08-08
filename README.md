@@ -10,6 +10,10 @@ commitment. Identity stays hidden until **both** sides have paid.
 Built with [monskills](https://skills.devnads.com). AI routed through
 [9Router](https://9router.com).
 
+**Live:** <https://blindluv-app.vercel.app>
+· <https://blindluv-monad.vercel.app>
+· <https://blindluv-x402.vercel.app>
+
 | Doc | What's in it |
 | --- | --- |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | how the pieces fit, what's on-chain vs off-chain, the contract API |
@@ -147,7 +151,18 @@ A matchmaker that tells everyone they are a 95% match is not a matchmaker.
 | AI agent via 9Router + deterministic fallback | complete · verified against a mock gateway, incl. failure path |
 | x402 facilitator | complete · verified against live Monad testnet |
 | Frontend (7-step flow) | complete · typechecks, lints and builds clean |
-| Vercel deployment | live — see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| Vercel deployment | **live and public** at the URLs above |
 | Monad contract deployment | **pending** — needs testnet MON in the operator wallet |
 | 9Router endpoint | **pending** — needs a publicly reachable instance + key |
+| KV persistence | **pending** — connect Upstash Redis, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | Indexer (activity feed) | not started |
+
+### What still needs you
+
+Three things, each independent. The app runs and is honest about all three.
+
+| # | Blocker | Why I can't do it |
+| --- | --- | --- |
+| 1 | Testnet MON in `0xeB63Fa41DFf47C09D68E2Ad3582299F81da5f72f` | the Monad faucet is captcha-gated |
+| 2 | A public 9Router URL + API key | 9Router is software you host; there is no hosted API to point at |
+| 3 | Upstash Redis connected in Vercel | provisioning now goes through an interactive Marketplace OAuth flow |

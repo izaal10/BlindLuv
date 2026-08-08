@@ -20,7 +20,7 @@ interface Config {
   };
   capabilities: { aiAgent: boolean; x402Settlement: boolean; onchainAgent: boolean };
   wallets: { facilitator: string | null; agent: string | null };
-  stats: { profiles: number; matches: number };
+  stats: { profiles: number; matches: number; backend: "kv" | "memory" };
 }
 
 function Dot({ state }: { state: "on" | "off" | "warn" }) {
@@ -90,6 +90,17 @@ export function StatusPanel() {
           </div>
         ))}
       </div>
+
+      {data.stats.backend === "memory" ? (
+        <p
+          className="mt-4 rounded-[10px] px-3 py-2.5 text-[11.5px] leading-[1.55]"
+          style={{ background: "rgba(217,143,31,0.14)", color: "var(--gold-deep)" }}
+        >
+          Profiles are held in memory. That is fine locally, but serverless instances do not share memory — two people
+          can land on different instances and never see each other. Connect Upstash Redis and set{" "}
+          <code className="mono">KV_REST_API_URL</code> / <code className="mono">KV_REST_API_TOKEN</code>.
+        </p>
+      ) : null}
 
       {data.ai.unreachableFromServerless ? (
         <p
