@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAddress, type Address } from "viem";
 
 import { agentIsLive, buildProfile } from "@/lib/ai/agent";
+import { MAX_AGE, MIN_AGE, parseAge, parsePreference } from "@/lib/age";
 import { isGender, parseSeeking } from "@/lib/gender";
 import { computeCommitment, getProfile, putProfile, randomSalt } from "@/lib/store";
 
@@ -47,9 +48,19 @@ export async function POST(request: Request) {
   }
   const seeking = parseSeeking(body.seeking);
 
+  // Age is the same kind of value as gender: stated, filtered in plain code,
+  // never sent to the model. Under-18 is rejected rather than clamped — quietly
+  // rewriting it to 18 would put a minor in the pool and record that they said
+  // they were an adult.
+  const age = parseAge(body.age);
+  if (age === null) {
+    return NextResponse.json({ error: `Enter your age (${MIN_AGE}–${MAX_AGE}).` }, { status: 400 });
+  }
+  const { ageMin, ageMax } = parsePreference(body);
+
   const profile = await buildProfile({ likes, dislikes, conversationStyle, city });
   const salt = randomSalt();
-  const commitment = computeCommitment(profile, city, gender, seeking, salt);
+  const commitment = computeCommitment(profile, city, gender, seeking, { age, ageMin, ageMax }, salt);
 
   await putProfile({
     address: address as Address,
@@ -57,6 +68,9 @@ export async function POST(request: Request) {
     city,
     gender,
     seeking,
+    age,
+    ageMin,
+    ageMax,
     salt,
     commitment,
     reveal: {
@@ -86,6 +100,9 @@ export async function GET(request: Request) {
     city: record.city,
     gender: record.gender,
     seeking: record.seeking,
+    age: record.age,
+    ageMin: record.ageMin,
+    ageMax: record.ageMax,
     commitment: record.commitment,
   });
 }

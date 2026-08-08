@@ -94,9 +94,14 @@ tenth of a cent, if this were real money.
 
 1. **Connect wallet.** Nothing else on the site works first — your wallet *is*
    your account. No email, no password.
-2. **Write your profile.** City, who you are, who you want to meet, and a few
-   honest sentences about what you are into. The button stays disabled until
-   the four required fields are filled, and it tells you which are missing.
+2. **Write your profile.** City, who you are and who you want to meet, your age
+   and the ages you want to meet, and a few honest sentences about what you are
+   into. The button stays disabled until the required fields are filled, and it
+   tells you which are missing.
+
+   Gender and age never reach the AI. They filter who you see, in plain code,
+   before the model runs — both mutually, so you are only shown to people whose
+   stated preferences include you.
 3. **Publish your commitment.** One transaction. It puts a *hash* of your
    profile on Monad — not the profile. This is what lets the contract later
    prove your profile existed at match time without ever having stored it.
@@ -107,7 +112,15 @@ tenth of a cent, if this were real money.
 6. **Reveal.** Pay 0.05 USDC via x402 — you sign a message, not a transaction,
    so this step needs **no MON at all**. Identity appears only when both of you
    have staked.
-7. **Confirm attendance.** Both confirm, both stakes come back.
+7. **Talk.** A chat opens under the revealed identity. Sign once to enter — it
+   proves you own the wallet, costs nothing, and is what makes the sender of a
+   message something the server *knows* rather than something the client claims.
+   See [CHAT.md](CHAT.md).
+8. **Confirm attendance.** Both confirm, both stakes come back.
+
+Once you stake, the app asks whether it may send notifications. It uses that for
+exactly two things — the other side staking, and a reply arriving — and only
+when the tab is in the background.
 
 ---
 

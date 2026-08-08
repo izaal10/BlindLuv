@@ -35,6 +35,7 @@ Built with [monskills](https://skills.devnads.com). AI routed through
 | [docs/9ROUTER.md](docs/9ROUTER.md) | how the agent talks to the gateway, and why it is built defensively |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Vercel, Monad contract deploy, explorer verification |
 | [docs/X402.md](docs/X402.md) | the payment protocol, and why the facilitator is self-hosted |
+| [docs/CHAT.md](docs/CHAT.md) | the post-reveal conversation, its auth, and what it deliberately is not |
 
 ---
 
@@ -183,9 +184,22 @@ three Monad behaviours that each produced a bug before they produced a fix.
 ## The one design rule about the AI
 
 The agent is given **only** stated interests, values, and conversation style. It
-never receives a photo, a name, or an age, because the server never sends one.
-Scoring people on appearance is both the obvious thing to build and the thing
-most likely to encode bias, so the capability simply is not wired up.
+never receives a photo, a name, a gender, or an age, because the server never
+sends one. Scoring people on appearance is both the obvious thing to build and
+the thing most likely to encode bias, so the capability simply is not wired up.
+
+Gender and age are still used — as **hard filters in plain code**, before a
+single profile reaches the model:
+
+```ts
+const wanted = localProfiles.filter((c) => mutuallyInterested(me, c));
+const inCity = wanted.filter((c) => mutuallyInAgeRange(me, c));
+```
+
+Both are mutual, so nobody is shown to someone whose stated preference excludes
+them. Filtering first is cheaper than paying for a scored match that then gets
+discarded — and unlike an instruction in a prompt, a filter cannot be argued
+out of.
 
 The system prompt also pushes for honesty over flattery: mediocre matches are
 supposed to land in the 40s, and scores above 85 are reserved for real overlap.
@@ -209,7 +223,7 @@ A matchmaker that tells everyone they are a 95% match is not a matchmaker.
 Two test suites, and they cover different halves:
 
 ```bash
-npm run e2e:local        # 18 assertions — the WHOLE flow, incl. staking and x402 settlement
+npm run e2e:local        # 26 assertions — the WHOLE flow, incl. staking, x402 settlement and chat
 npm run smoke:testnet    # 22 assertions — the LIVE deployment, as far as MON alone reaches
 ```
 
@@ -227,6 +241,9 @@ in its output instead of quietly stopping short.
 | ✅ | Self-hosted x402 facilitator with six-condition verification |
 | ✅ | AI matchmaker on Claude Sonnet 5 via 9Router, deterministic scorer as fallback |
 | ✅ | Gender + "who you want to meet" as a hard filter **before** the model, in plain code |
+| ✅ | Age + age range, same rule — filtered in code, never sent to the model, bound into the commitment |
+| ✅ | Chat once the session is unlocked, with sign-once bearer auth so a sender is proven, not asserted |
+| ✅ | Desktop notifications for the two moments the app makes you wait |
 | ✅ | 4-step wizard, wallet-gated, EIP-6963 multi-wallet discovery |
 | ✅ | Local Anvil fork of Monad testnet — real USDC, minted money, no faucet |
 | ✅ | `NEXT_PUBLIC_CHAIN_MODE` switches local ↔ testnet with no code change |

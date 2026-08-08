@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAddress, keccak256, toHex } from "viem";
 
 import { scoreMatch } from "@/lib/ai/agent";
+import { mutuallyInAgeRange } from "@/lib/age";
 import { mutuallyInterested } from "@/lib/gender";
 import { computeMatchProof, getProfile, listProfiles, putMatch } from "@/lib/store";
 
@@ -37,21 +38,30 @@ export async function POST(request: Request) {
   const localProfiles = all.filter((c) => c.city.toLowerCase() === me.city.toLowerCase());
 
   /**
-   * Gender is filtered here, in plain code, before a single profile reaches
-   * the model — both because it is cheaper than paying for a scored match
-   * that then gets discarded, and because the agent should never see gender
-   * at all. Interests are for the model; who you want to meet is a fact.
+   * Gender and age are filtered here, in plain code, before a single profile
+   * reaches the model — both because it is cheaper than paying for a scored
+   * match that then gets discarded, and because the agent should never see
+   * either one. Interests are for the model; who you want to meet is a fact.
+   *
+   * Both filters are mutual, so nobody is shown to someone whose stated
+   * preference excludes them.
    */
-  const inCity = localProfiles.filter((c) =>
+  const wanted = localProfiles.filter((c) =>
     mutuallyInterested({ gender: me.gender, seeking: me.seeking }, { gender: c.gender, seeking: c.seeking }),
   );
-  const filteredByGender = localProfiles.length - inCity.length;
+  const filteredByGender = localProfiles.length - wanted.length;
+
+  const inCity = wanted.filter((c) => mutuallyInAgeRange(me, c));
+  const filteredByAge = wanted.length - inCity.length;
 
   if (inCity.length === 0) {
+    const excluded = filteredByGender + filteredByAge;
     return NextResponse.json({
       matches: [],
-      note: filteredByGender
-        ? `${filteredByGender} profile(s) in ${me.city}, but none match who you both want to meet.`
+      ...(filteredByGender > 0 ? { filteredByGender } : {}),
+      ...(filteredByAge > 0 ? { filteredByAge } : {}),
+      note: excluded
+        ? `${excluded} profile(s) in ${me.city}, but none inside what you both asked for.`
         : `No other profiles in ${me.city} yet.`,
     });
   }
@@ -106,6 +116,7 @@ export async function POST(request: Request) {
     vetoedCount: vetoed.length,
     scanned: candidates.length,
     ...(filteredByGender > 0 ? { filteredByGender } : {}),
+    ...(filteredByAge > 0 ? { filteredByAge } : {}),
     ...(skipped > 0 ? { skipped, note: `Scored the first ${candidates.length} of ${inCity.length} profiles in ${me.city}.` } : {}),
   });
 }

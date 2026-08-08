@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Address, Hex } from "viem";
 import { useAccount, usePublicClient, useReadContract, useWalletClient, useWriteContractSync } from "wagmi";
 
@@ -11,6 +11,7 @@ import { MatchCard, type BlindMatch } from "@/components/MatchCard";
 import { FundingPanel } from "@/components/FundingPanel";
 import { StatusPanel } from "@/components/StatusPanel";
 import { Stepper, type StepIndex } from "@/components/Stepper";
+import { Chat } from "@/components/Chat";
 import { Chip, Field, Notice, PillChoice, PillMulti, Row, TextArea } from "@/components/ui";
 import { blindluvAbi, usdcAbi } from "@/lib/abi";
 import {
@@ -24,7 +25,9 @@ import {
   txUrl,
   withBuffer,
 } from "@/lib/chain";
+import { DEFAULT_AGE_MAX, DEFAULT_AGE_MIN, MAX_AGE, MIN_AGE, parseAge } from "@/lib/age";
 import { GENDERS } from "@/lib/gender";
+import { askToNotify, notify } from "@/lib/notify";
 import { useIsHydrated } from "@/lib/useIsHydrated";
 import { PaymentError, fetchWithPayment } from "@/lib/x402/client";
 import type { PaymentRequirements, SettleResponse } from "@/lib/x402/types";
@@ -67,6 +70,9 @@ export default function Home() {
   const [form, setForm] = useState({ city: "", about: "", dealBreakers: "", displayName: "", contact: "" });
   const [gender, setGender] = useState("");
   const [seeking, setSeeking] = useState<string[]>([]);
+  const [age, setAge] = useState("");
+  const [ageMin, setAgeMin] = useState(String(DEFAULT_AGE_MIN));
+  const [ageMax, setAgeMax] = useState(String(DEFAULT_AGE_MAX));
   const [commitment, setCommitment] = useState<Hex | null>(null);
   const [profileTags, setProfileTags] = useState<string[]>([]);
   const [profileSource, setProfileSource] = useState<"router" | "heuristic" | null>(null);
@@ -127,6 +133,25 @@ export default function Home() {
   const furthest: StepIndex = revealed || bothStaked ? 3 : sessionId ? 2 : matches.length > 0 ? 1 : 0;
   const step: StepIndex = viewing !== null && viewing <= furthest ? viewing : furthest;
 
+  /**
+   * The one moment worth interrupting someone for.
+   *
+   * Waiting for the other side to stake is open-ended — they might be minutes
+   * or hours away — so this is the point where a person would otherwise leave
+   * the tab open and keep checking it. Everything else in the flow is a button
+   * you press and a result you see, and needs no announcement.
+   */
+  const announcedUnlock = useRef(false);
+  useEffect(() => {
+    if (!bothStaked || announcedUnlock.current) return;
+    announcedUnlock.current = true;
+    notify(
+      "They staked too",
+      "Your session is unlocked. Pay the reveal fee to see who they are.",
+      "blindluv-unlocked",
+    );
+  }, [bothStaked]);
+
   const guard = useCallback(
     (label: Busy, fn: () => Promise<void>) => async () => {
       setError(null);
@@ -168,6 +193,9 @@ export default function Home() {
         city: form.city,
         gender,
         seeking,
+        age: Number(age),
+        ageMin: Number(ageMin),
+        ageMax: Number(ageMax),
         likes: form.about,
         dislikes: form.dealBreakers,
         displayName: form.displayName,
@@ -287,6 +315,11 @@ export default function Home() {
     // Says nothing about the other side: this note outlives the moment it was
     // written, and "waiting for them" reads as broken once they have staked.
     setNote("Your stake is locked in. You get all of it back when you both confirm you met.");
+
+    // Asked here and nowhere else: staking is the moment the waiting starts, so
+    // it is the first point where a notification is obviously worth something.
+    // Prompting on page load gets denied, and a denial is permanent.
+    void askToNotify();
   });
 
   const confirmAttendance = guard("confirm", async () => {
@@ -342,9 +375,11 @@ export default function Home() {
    * skips either gets a dead button and no idea why, which is indistinguishable
    * from the app being broken.
    */
+  const ageValid = parseAge(age) !== null;
   const missing = [
     form.city.trim() ? null : "your city",
     gender ? null : "who you are",
+    ageValid ? null : `your age (${MIN_AGE}–${MAX_AGE})`,
     form.about.trim().length >= 8 ? null : "a line about what you're into",
     form.displayName.trim() ? null : "your name",
   ].filter(Boolean) as string[];
@@ -415,6 +450,54 @@ export default function Home() {
                     onChange={setSeeking}
                     hint="Pick any. Leave empty to be open to everyone. Both sides must want each other to be shown."
                   />
+
+                  <div className="mb-5">
+                    <label className="mb-2 block text-[12px] font-medium text-[var(--text-primary)]">Your age</label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={MIN_AGE}
+                      max={MAX_AGE}
+                      placeholder="28"
+                      value={age}
+                      onChange={(e) => setAge(e.target.value)}
+                      className="w-full rounded-[10px] border border-[var(--border)] bg-transparent px-3 py-2.5 text-[14px] outline-none focus:border-[var(--rose)]"
+                    />
+                    <p className="mt-1.5 text-[11.5px] text-[var(--text-muted)]">
+                      Also never sent to the AI. Like gender, it filters who you see — it is not something to be
+                      scored on.
+                    </p>
+                  </div>
+
+                  <div className="mb-5">
+                    <label className="mb-2 block text-[12px] font-medium text-[var(--text-primary)]">
+                      Ages you want to meet
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={MIN_AGE}
+                        max={MAX_AGE}
+                        value={ageMin}
+                        onChange={(e) => setAgeMin(e.target.value)}
+                        className="w-full rounded-[10px] border border-[var(--border)] bg-transparent px-3 py-2.5 text-[14px] outline-none focus:border-[var(--rose)]"
+                      />
+                      <span className="flex-none text-[12px] text-[var(--text-muted)]">to</span>
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={MIN_AGE}
+                        max={MAX_AGE}
+                        value={ageMax}
+                        onChange={(e) => setAgeMax(e.target.value)}
+                        className="w-full rounded-[10px] border border-[var(--border)] bg-transparent px-3 py-2.5 text-[14px] outline-none focus:border-[var(--rose)]"
+                      />
+                    </div>
+                    <p className="mt-1.5 text-[11.5px] text-[var(--text-muted)]">
+                      Mutual, like the gender filter: their age must be in your range and yours in theirs.
+                    </p>
+                  </div>
                   <TextArea
                     label="What you're into"
                     placeholder="Coffee, weekend hikes, building things, long conversations that go nowhere useful"
@@ -684,6 +767,10 @@ export default function Home() {
                     </>
                   )}
                 </div>
+
+                {revealed && sessionId && address ? (
+                  <Chat sessionId={sessionId} me={address} themName={revealed.displayName} />
+                ) : null}
 
                 {revealed ? (
                   <div className="card mt-5 p-6">

@@ -110,6 +110,9 @@ async function main() {
     city: CITY,
     gender: "woman",
     seeking: ["man"],
+    age: 29,
+    ageMin: 25,
+    ageMax: 38,
     likes: "specialty coffee, weekend hiking, building software, long conversations",
     dislikes: "smoking",
     displayName: "Alice",
@@ -122,6 +125,9 @@ async function main() {
     city: CITY,
     gender: "man",
     seeking: ["woman"],
+    age: 32,
+    ageMin: 24,
+    ageMax: 36,
     likes: "blockchain, coffee, running, travelling",
     dislikes: "smoking",
     displayName: "Bob",
@@ -135,12 +141,33 @@ async function main() {
     city: CITY,
     gender: "man",
     seeking: ["man"],
+    age: 30,
+    ageMin: 25,
+    ageMax: 40,
     likes: "coffee, cycling, photography, cooking",
     dislikes: "smoking",
     displayName: "Chris",
     contact: "@chris",
   });
   ok("third profile (should be filtered out for alice)", c.status === 200);
+
+  // A fourth whose gender is fine but whose age is outside alice's stated
+  // range, so the two filters are shown to be independent rather than one
+  // covering for the other.
+  const d4 = await post("/api/profile", {
+    address: privateKeyToAccount(generatePrivateKey()).address,
+    city: CITY,
+    gender: "man",
+    seeking: ["woman"],
+    age: 61,
+    ageMin: 18,
+    ageMax: 99,
+    likes: "coffee, hiking, software, long conversations about books",
+    dislikes: "smoking",
+    displayName: "Dave",
+    contact: "@dave",
+  });
+  ok("fourth profile (should be filtered out by age)", d4.status === 200);
 
   // The contract will not open a session for anyone without an on-chain
   // commitment, so both sides must publish before matching can proceed.
@@ -165,6 +192,11 @@ async function main() {
     "gender filter excluded the incompatible profile",
     d.json?.filteredByGender === 1,
     `filteredByGender=${d.json?.filteredByGender}`,
+  );
+  ok(
+    "age filter excluded the out-of-range profile",
+    d.json?.filteredByAge === 1,
+    `filteredByAge=${d.json?.filteredByAge}`,
   );
   const match = matches[0];
   ok("match is bob", match?.counterparty?.toLowerCase() === bob.address.toLowerCase());
@@ -242,6 +274,55 @@ async function main() {
     "payment settled on-chain",
     paid.json?.payment?.success === true,
     paid.json?.payment?.success ? paid.json.payment.transaction?.slice(0, 14) : JSON.stringify(paid.json?.payment),
+  );
+
+  // ---- 5b. chat, which the reveal is the gate for -------------------------
+  console.log("\n5b. chat");
+
+  // Unauthenticated reads must not work: the address in a body is a claim, not
+  // a proof, and a message is attributed to a person.
+  const noAuth = await fetch(`${APP}/api/chat?sessionId=${sessionId}`).then((r) => r.status);
+  ok("chat rejects an unsigned request", noAuth === 401, `status ${noAuth}`);
+
+  const signIn = async (account) => {
+    const c = await fetch(
+      `${APP}/api/chat/auth?address=${account.address}&sessionId=${sessionId}`,
+    ).then((r) => r.json());
+    const signature = await account.signMessage({ message: c.message });
+    const res = await post("/api/chat/auth", {
+      address: account.address,
+      sessionId: sessionId.toString(),
+      issuedAt: c.issuedAt,
+      signature,
+    });
+    return res.json?.token ?? null;
+  };
+
+  const aliceToken = await signIn(alice);
+  const bobToken = await signIn(bob);
+  ok("both sides can sign in", Boolean(aliceToken && bobToken));
+
+  // A token names one session. Pointing it at another must fail, or one match
+  // would be a key to every conversation the holder is not part of.
+  const wrongSession = await fetch(`${APP}/api/chat?sessionId=${sessionId + 1n}`, {
+    headers: { Authorization: `Bearer ${aliceToken}` },
+  }).then((r) => r.status);
+  ok("a token for one session does not open another", wrongSession === 401, `status ${wrongSession}`);
+
+  const sent = await post(
+    "/api/chat",
+    { sessionId: sessionId.toString(), body: "Saturday, 4pm, the coffee place on the corner?" },
+    { Authorization: `Bearer ${aliceToken}` },
+  );
+  ok("alice can send", sent.status === 200, sent.json?.error);
+
+  const bobSees = await fetch(`${APP}/api/chat?sessionId=${sessionId}`, {
+    headers: { Authorization: `Bearer ${bobToken}` },
+  }).then((r) => r.json());
+  ok("bob sees it", bobSees.messages?.length === 1, bobSees.messages?.[0]?.body);
+  ok(
+    "the sender is the signed wallet, not a body field",
+    bobSees.messages?.[0]?.from?.toLowerCase() === alice.address.toLowerCase(),
   );
 
   // ---- 6. concierge -------------------------------------------------------

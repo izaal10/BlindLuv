@@ -62,6 +62,7 @@ optional; each missing group just switches a capability off.
 | `FACILITATOR_PRIVATE_KEY` | server | x402 relayer; needs testnet MON |
 | `AGENT_WALLET_ADDRESS` | server | Where x402 fees land |
 | `KV_REST_API_URL` / `KV_REST_API_TOKEN` | server | **Recommended** — see below |
+| `CHAT_TOKEN_SECRET` | server | **Recommended** — signs chat bearer tokens. Without it a random per-process secret is used, so tokens die on restart and users re-sign |
 
 ```bash
 # non-interactive

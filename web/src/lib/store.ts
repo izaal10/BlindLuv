@@ -26,6 +26,10 @@ export interface StoredProfile {
   gender: string;
   /** Genders this person wants to meet. Empty means open to anyone. */
   seeking: string[];
+  /** Also a stated fact, also never shown to the model. */
+  age: number;
+  ageMin: number;
+  ageMax: number;
   /** Kept server-side; the chain sees only keccak256(profile‖salt). */
   salt: Hex;
   commitment: Hex;
@@ -62,12 +66,20 @@ export function randomSalt(): Hex {
   return toHex(bytes);
 }
 
-/** keccak256 over the canonical profile encoding plus the private salt. */
+/**
+ * keccak256 over the canonical profile encoding plus the private salt.
+ *
+ * Every stated fact the matching depended on is bound in, age included. If a
+ * field can change who you were shown, leaving it out of the commitment would
+ * let someone rewrite it after seeing their results and still point at the same
+ * on-chain hash.
+ */
 export function computeCommitment(
   profile: AgentProfile,
   city: string,
   gender: string,
   seeking: string[],
+  age: { age: number; ageMin: number; ageMax: number },
   salt: Hex,
 ): Hex {
   const canonical = JSON.stringify({
@@ -77,6 +89,9 @@ export function computeCommitment(
     city,
     gender,
     seeking: [...seeking].sort(),
+    age: age.age,
+    ageMin: age.ageMin,
+    ageMax: age.ageMax,
     salt,
   });
   return keccak256(toHex(canonical));
