@@ -4,9 +4,10 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 
-import { CHAIN_ID, CHAIN_LABEL, shortAddress } from "@/lib/chain";
+import { CHAIN_ID, CHAIN_LABEL, RPC_URL, shortAddress } from "@/lib/chain";
 import { useIsHydrated } from "@/lib/useIsHydrated";
 import { addAppChain } from "@/lib/wagmi";
+import { pickWallets } from "@/lib/wallets";
 
 export function Header() {
   const { address, isConnected, chainId } = useAccount();
@@ -33,19 +34,7 @@ export function Header() {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  /**
-   * EIP-6963 discovery reports each wallet separately, but the bare
-   * `injected` shim usually points at the same extension — showing both would
-   * offer the user the same wallet twice.
-   */
-  const wallets = useMemo(() => {
-    const discovered = connectors.filter((c) => c.id !== "injected" && c.id !== "metaMaskSDK");
-    const seen = new Set(discovered.map((c) => c.name.toLowerCase()));
-    const extras = connectors.filter(
-      (c) => (c.id === "injected" || c.id === "metaMaskSDK") && !seen.has(c.name.toLowerCase()),
-    );
-    return [...discovered, ...extras];
-  }, [connectors]);
+  const wallets = useMemo(() => pickWallets(connectors), [connectors]);
 
   const wrongChain = mounted && isConnected && chainId !== CHAIN_ID;
 
@@ -128,7 +117,8 @@ export function Header() {
                   Add {CHAIN_LABEL} to my wallet
                 </button>
                 <p className="mt-2 px-1 text-[10.5px] leading-[1.5] text-[var(--text-muted)]">
-                  Chain 10143 · testnet-rpc.monad.xyz. Add it first if your wallet has never seen Monad.
+                  Chain {CHAIN_ID} · {RPC_URL.replace(/^https?:\/\//, "")}. Add it first if your wallet has never seen
+                  this network.
                 </p>
               </div>
             </div>

@@ -5,6 +5,7 @@ import { useConnect } from "wagmi";
 
 import { CHAIN_ID, CHAIN_LABEL } from "@/lib/chain";
 import { addAppChain } from "@/lib/wagmi";
+import { pickWallets } from "@/lib/wallets";
 import { useMemo, useState } from "react";
 
 /**
@@ -16,14 +17,7 @@ export function ConnectGate() {
   const { connectors, connect, isPending, error } = useConnect();
   const [addError, setAddError] = useState<string | null>(null);
 
-  const wallets = useMemo(() => {
-    const discovered = connectors.filter((c) => c.id !== "injected" && c.id !== "metaMaskSDK");
-    const seen = new Set(discovered.map((c) => c.name.toLowerCase()));
-    const extras = connectors.filter(
-      (c) => (c.id === "injected" || c.id === "metaMaskSDK") && !seen.has(c.name.toLowerCase()),
-    );
-    return [...discovered, ...extras];
-  }, [connectors]);
+  const wallets = useMemo(() => pickWallets(connectors), [connectors]);
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-220px)] max-w-[520px] flex-col items-center justify-center px-6 text-center">

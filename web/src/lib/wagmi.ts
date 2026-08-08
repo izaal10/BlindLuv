@@ -1,5 +1,5 @@
 import { cookieStorage, createConfig, createStorage, http } from "wagmi";
-import { injected, metaMask } from "wagmi/connectors";
+import { injected } from "wagmi/connectors";
 
 import { CHAIN, RPC_URL, monadLocal } from "./chain";
 import { monadTestnet } from "viem/chains";
@@ -16,14 +16,25 @@ import { monadTestnet } from "viem/chains";
  *   `cookieStorage` is what makes reconnect survive a refresh.
  *
  * - `multiInjectedProviderDiscovery` (on by default) picks up every EIP-6963
- *   wallet — MetaMask, Rabby, Phantom — as its own connector, so the header
- *   can offer a real choice instead of guessing at `window.ethereum`. The
- *   bare `injected()` entry is the fallback for wallets that predate EIP-6963,
- *   and `metaMask()` is the SDK connector that deep-links on mobile.
+ *   wallet — MetaMask, Rabby, Phantom — as its own connector, so the gate can
+ *   offer a real choice instead of guessing at `window.ethereum`.
+ *
+ * The two explicit connectors are fallbacks for when discovery comes up short.
+ *
+ * `injected({ target: "metaMask" })` rather than wagmi's `metaMask()`: the
+ * latter is the MetaMask SDK connector, and it lazily imports
+ * `@metamask/connect-evm` — an *optional* peer dependency, so npm never
+ * installs it and the failure only surfaces when a user clicks Connect
+ * ("Cannot find module '@metamask/connect-evm'"). Its real advantage is mobile
+ * deep-linking, which this app does not need. The injected target reaches the
+ * extension with no extra dependency at all, and its provider check walks
+ * `window.ethereum.providers` rejecting the wallets that impersonate MetaMask
+ * — `isMathWallet`, `isRabby`, `isPhantom` and a dozen more. With several
+ * wallets installed that discrimination is the whole ballgame.
  */
 export const wagmiConfig = createConfig({
   chains: [CHAIN],
-  connectors: [injected(), metaMask()],
+  connectors: [injected({ target: "metaMask" }), injected()],
   storage: createStorage({ storage: cookieStorage }),
   // CHAIN is a union of the two possible targets, so the transport map has to
   // cover both ids even though only one chain is ever active.
