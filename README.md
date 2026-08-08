@@ -16,8 +16,10 @@ Built with [monskills](https://skills.devnads.com). AI routed through
 
 | Doc | What's in it |
 | --- | --- |
+| [docs/TESTING.md](docs/TESTING.md) | **start here** — connect MetaMask, add Monad Testnet, get MON and USDC |
+| [docs/9ROUTER-SETUP.md](docs/9ROUTER-SETUP.md) | **getting your API key**, step by step |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | how the pieces fit, what's on-chain vs off-chain, the contract API |
-| [docs/9ROUTER.md](docs/9ROUTER.md) | wiring the AI agent, finding your Sonnet model ID, exposing 9Router to Vercel |
+| [docs/9ROUTER.md](docs/9ROUTER.md) | how the agent talks to the gateway, and why it is built defensively |
 | [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) | Vercel, Monad contract deploy, explorer verification |
 | [docs/X402.md](docs/X402.md) | the payment protocol, and why the facilitator is self-hosted |
 

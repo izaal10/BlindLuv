@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="BlindLuv">
+  <title>BlindLuv</title>
+  <!--
+    Vector reduction of the BlindLuv mark: two blindfolded profiles facing each
+    other, whose heads form the lobes of a heart. The watercolour original does
+    not survive vectorisation, so this is the flat form used for the header and
+    favicon — it stays readable at 16px, where the texture would be mud anyway.
+    The full-colour artwork lives at /logo-mark.png for OG and social cards.
+  -->
+  <defs>
+    <mask id="blindluv-cuts">
+      <rect width="100" height="100" fill="#fff"/>
+      <!-- gap between the two heads -->
+      <path d="M50 20 C52 30 52 38 50 46 C48 38 48 30 50 20 Z" fill="#000"/>
+      <!-- the blindfold: a band of negative space across both faces, tilted
+           slightly so the mark reads as cloth rather than a strikethrough -->
+      <path d="M4 55 L96 44 L96 55 L4 66 Z" fill="#000"/>
+      <!-- The channel between the two faces. Its bulges are the noses and lips
+           of a facing profile pair, so the lower half of the heart reads as
+           two people almost touching rather than as a solid wedge. -->
+      <path d="M47.6 58
+               C47.6 62 43.6 63.4 43.6 66.4
+               C43.6 69.4 47.6 69.4 47.6 72.4
+               C47.6 75.4 44.6 76.4 44.6 79.4
+               C44.6 82.2 47.6 83 47.6 86.6
+               L52.4 86.6
+               C52.4 83 55.4 82.2 55.4 79.4
+               C55.4 76.4 52.4 75.4 52.4 72.4
+               C52.4 69.4 56.4 69.4 56.4 66.4
+               C56.4 63.4 52.4 62 52.4 58 Z" fill="#000"/>
+    </mask>
+  </defs>
+
+  <path
+    d="M50 90
+       C50 90 10 64 10 38
+       C10 23 21 15 31 15
+       C39 15 46 19 50 26
+       C54 19 61 15 69 15
+       C79 15 90 23 90 38
+       C90 64 50 90 50 90 Z"
+    fill="#E8232F"
+    mask="url(#blindluv-cuts)"
+  />
+</svg>
