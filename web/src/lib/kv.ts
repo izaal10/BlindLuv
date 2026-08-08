@@ -13,8 +13,14 @@ import "server-only";
  * it works unchanged on Vercel KV (which is Upstash underneath).
  */
 
-const url = process.env.KV_REST_API_URL?.replace(/\/+$/, "") ?? "";
-const token = process.env.KV_REST_API_TOKEN ?? "";
+/**
+ * Both naming conventions are accepted: Upstash's own dashboard hands out
+ * `UPSTASH_REDIS_REST_*`, while Vercel's Marketplace integration injects
+ * `KV_REST_API_*` for the same database. Supporting both means either route
+ * works with no code change.
+ */
+const url = (process.env.KV_REST_API_URL ?? process.env.UPSTASH_REDIS_REST_URL ?? "").replace(/\/+$/, "");
+const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN ?? "";
 
 export const kvEnabled = Boolean(url && token);
 

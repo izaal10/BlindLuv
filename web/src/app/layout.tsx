@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import { headers } from "next/headers";
+import { cookieToInitialState } from "wagmi";
 import { Fraunces, IBM_Plex_Mono, Inter } from "next/font/google";
 
 import { Providers } from "./providers";
+import { wagmiConfig } from "@/lib/wagmi";
 import "./globals.css";
 
 const fraunces = Fraunces({
@@ -52,11 +55,18 @@ export const viewport: Viewport = {
   themeColor: "#FFF6F3",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  /**
+   * Rehydrate wagmi on the server from the connection cookie. Without this the
+   * first paint always renders the signed-out screen and then swaps — a
+   * connected user would watch the whole flow flash past on every load.
+   */
+  const initialState = cookieToInitialState(wagmiConfig, (await headers()).get("cookie"));
+
   return (
     <html lang="en">
       <body className={`${fraunces.variable} ${plexMono.variable} ${inter.variable}`}>
-        <Providers>{children}</Providers>
+        <Providers initialState={initialState}>{children}</Providers>
       </body>
     </html>
   );
