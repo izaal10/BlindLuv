@@ -10,9 +10,19 @@ commitment. Identity stays hidden until **both** sides have paid.
 Built with [monskills](https://skills.devnads.com). AI routed through
 [9Router](https://9router.com).
 
-**Live:** <https://blindluv-app.vercel.app>
+**Live:** <https://blindluv-id.vercel.app>
+· <https://blind-luv.vercel.app>
+· <https://blindluv-app.vercel.app>
+· <https://blindluv-dating.vercel.app>
+· <https://blindluv-ai.vercel.app>
+· <https://getblindluv.vercel.app>
+· <https://blindluv-testnet.vercel.app>
 · <https://blindluv-monad.vercel.app>
 · <https://blindluv-x402.vercel.app>
+
+`blindluv.vercel.app` itself is held by a **different Vercel account**
+(`nandobalam's projects`) and cannot be claimed from this login — see
+[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md#claiming-blindluvvercelapp).
 
 | Doc | What's in it |
 | --- | --- |
@@ -154,8 +164,8 @@ A matchmaker that tells everyone they are a 95% match is not a matchmaker.
 | `BlindLuv.sol` | complete · 18/18 tests passing |
 | x402 facilitator | complete · verified against live Monad testnet |
 | Frontend (7-step flow) | complete · typechecks, lints and builds clean |
-| Vercel deployment | **live and public** at the URLs above |
-| AI agent | **live** — Claude Sonnet 5 (`cc/claude-sonnet-5`) via self-hosted 9Router, with a deterministic fallback |
+| Vercel deployment | **live and public** — 9 aliases, all on the same production build |
+| AI agent | **live** — Claude Sonnet 5 (`cc/claude-sonnet-5`) via self-hosted 9Router, smoke-tested in production |
 | Monad contract deployment | **pending** — needs testnet MON in the operator wallet |
 | KV persistence | **pending** — connect Upstash Redis, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | Indexer (activity feed) | not started |

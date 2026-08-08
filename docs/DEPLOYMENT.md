@@ -21,6 +21,31 @@ vercel --prod
 Or connect the GitHub repo in the Vercel dashboard and set **Root Directory** to
 `web`.
 
+### Claiming `blindluv.vercel.app`
+
+The bare `blindluv.vercel.app` subdomain is **already assigned to another Vercel
+account**, so it cannot be added from this one:
+
+```json
+{"error":{"code":"owned-on-other-team","domain":"blindluv.vercel.app",
+ "message":"Cannot add blindluv.vercel.app since it's already assigned to another project.",
+ "teamName":"nandobalam's projects"}}
+```
+
+`.vercel.app` subdomains are globally unique and there is no transfer flow, so
+freeing it means logging into **that** account and removing the domain from the
+project holding it (Project → Settings → Domains → Remove), or deleting that
+project outright. Once released:
+
+```bash
+cd web
+vercel domains add blindluv.vercel.app
+vercel alias set <latest-deployment-url> blindluv.vercel.app
+```
+
+Until then the app is served on the nine aliases listed in the
+[README](../README.md), all pointing at the same production deployment.
+
 ### Environment variables
 
 Set these in **Project → Settings → Environment Variables**. Everything is
