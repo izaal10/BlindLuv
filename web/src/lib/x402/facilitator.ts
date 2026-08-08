@@ -135,6 +135,29 @@ export async function verify(
   if (used) return { isValid: false, invalidReason: "authorization_already_used" };
   if (balance < value) return { isValid: false, invalidReason: "insufficient_funds" };
 
+  /**
+   * The plain-ECDSA signature checked above is only what USDC will use if the
+   * payer is a plain EOA. Circle's SignatureChecker routes any address *with
+   * code* — including an EIP-7702-delegated EOA — down the EIP-1271 path
+   * instead, calling `isValidSignature` on the delegate. A delegate that does
+   * not implement 1271 correctly makes the transfer revert with the unhelpful
+   * "FiatTokenV2: invalid signature", long after we have decided the payment
+   * was fine.
+   *
+   * This is not hypothetical: on Monad testnet the well-known Anvil test
+   * accounts already carry 7702 delegations to a contract that does not
+   * implement 1271, because their keys are public. Catching it here turns a
+   * mystifying revert into something the user can act on.
+   */
+  const code = await publicClient.getCode({ address: authorization.from });
+  if (code && code !== "0x") {
+    const delegated = code.startsWith("0xef0100");
+    return {
+      isValid: false,
+      invalidReason: delegated ? "payer_has_eip7702_delegation" : "payer_is_contract_wallet",
+    };
+  }
+
   return { isValid: true, payer: authorization.from };
 }
 

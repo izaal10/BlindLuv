@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAddress, type Address } from "viem";
 
 import { agentIsLive, buildProfile } from "@/lib/ai/agent";
+import { isGender, parseSeeking } from "@/lib/gender";
 import { computeCommitment, getProfile, putProfile, randomSalt } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -38,14 +39,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A city is required so matches stay local." }, { status: 400 });
   }
 
+  // Gender never reaches the model — it is a stated fact used as a hard
+  // filter in /api/discover, not something to be inferred or scored on.
+  const gender = String(body.gender ?? "");
+  if (!isGender(gender)) {
+    return NextResponse.json({ error: "Select your gender." }, { status: 400 });
+  }
+  const seeking = parseSeeking(body.seeking);
+
   const profile = await buildProfile({ likes, dislikes, conversationStyle, city });
   const salt = randomSalt();
-  const commitment = computeCommitment(profile, city, salt);
+  const commitment = computeCommitment(profile, city, gender, seeking, salt);
 
   await putProfile({
     address: address as Address,
     profile,
     city,
+    gender,
+    seeking,
     salt,
     commitment,
     reveal: {
@@ -73,6 +84,8 @@ export async function GET(request: Request) {
   return NextResponse.json({
     profile: record.profile,
     city: record.city,
+    gender: record.gender,
+    seeking: record.seeking,
     commitment: record.commitment,
   });
 }

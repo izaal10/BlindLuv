@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isAddress, keccak256, toHex } from "viem";
 
 import { scoreMatch } from "@/lib/ai/agent";
+import { mutuallyInterested } from "@/lib/gender";
 import { computeMatchProof, getProfile, listProfiles, putMatch } from "@/lib/store";
 
 export const runtime = "nodejs";
@@ -33,9 +34,26 @@ export async function POST(request: Request) {
   }
 
   const all = await listProfiles(address);
-  const inCity = all.filter((c) => c.city.toLowerCase() === me.city.toLowerCase());
+  const localProfiles = all.filter((c) => c.city.toLowerCase() === me.city.toLowerCase());
+
+  /**
+   * Gender is filtered here, in plain code, before a single profile reaches
+   * the model — both because it is cheaper than paying for a scored match
+   * that then gets discarded, and because the agent should never see gender
+   * at all. Interests are for the model; who you want to meet is a fact.
+   */
+  const inCity = localProfiles.filter((c) =>
+    mutuallyInterested({ gender: me.gender, seeking: me.seeking }, { gender: c.gender, seeking: c.seeking }),
+  );
+  const filteredByGender = localProfiles.length - inCity.length;
+
   if (inCity.length === 0) {
-    return NextResponse.json({ matches: [], note: `No other profiles in ${me.city} yet.` });
+    return NextResponse.json({
+      matches: [],
+      note: filteredByGender
+        ? `${filteredByGender} profile(s) in ${me.city}, but none match who you both want to meet.`
+        : `No other profiles in ${me.city} yet.`,
+    });
   }
 
   /**
@@ -87,6 +105,7 @@ export async function POST(request: Request) {
     matches,
     vetoedCount: vetoed.length,
     scanned: candidates.length,
+    ...(filteredByGender > 0 ? { filteredByGender } : {}),
     ...(skipped > 0 ? { skipped, note: `Scored the first ${candidates.length} of ${inCity.length} profiles in ${me.city}.` } : {}),
   });
 }

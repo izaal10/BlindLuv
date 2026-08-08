@@ -1,8 +1,43 @@
+import { defineChain } from "viem";
 import { monadTestnet } from "viem/chains";
 import type { Address } from "viem";
 
-export const CHAIN = monadTestnet;
-export const CHAIN_ID = monadTestnet.id; // 10143
+/**
+ * Two targets, one codebase.
+ *
+ *   NEXT_PUBLIC_CHAIN_MODE=local    → Anvil forking Monad testnet (chain 31337)
+ *   NEXT_PUBLIC_CHAIN_MODE=testnet  → Monad testnet (chain 10143, default)
+ *
+ * The local fork exists because deploying to the real testnet needs MON from a
+ * captcha-gated faucet. Forking gives you the same USDC contract, the same
+ * EIP-3009 behaviour and the same bytecode, with pre-funded accounts — so the
+ * full stake + x402 settlement path is exercisable before you have a single
+ * real token. Nothing but this file changes when you switch.
+ */
+export const CHAIN_MODE = (process.env.NEXT_PUBLIC_CHAIN_MODE ?? "testnet") as "local" | "testnet";
+export const IS_LOCAL = CHAIN_MODE === "local";
+
+const LOCAL_RPC = process.env.NEXT_PUBLIC_LOCAL_RPC_URL ?? "http://127.0.0.1:8545";
+
+/**
+ * Anvil keeps its own chain id (31337) rather than impersonating 10143 — a
+ * wallet that has both configured would otherwise show two networks claiming
+ * the same id and silently route transactions to the wrong one.
+ */
+export const monadLocal = defineChain({
+  id: 31337,
+  name: "BlindLuv Local (Monad fork)",
+  nativeCurrency: { name: "Testnet MON", symbol: "MON", decimals: 18 },
+  rpcUrls: { default: { http: [LOCAL_RPC] } },
+  testnet: true,
+});
+
+export const CHAIN = IS_LOCAL ? monadLocal : monadTestnet;
+export const CHAIN_ID = CHAIN.id;
+
+export const RPC_URL = IS_LOCAL
+  ? LOCAL_RPC
+  : (process.env.NEXT_PUBLIC_MONAD_RPC_URL ?? "https://testnet-rpc.monad.xyz");
 
 /**
  * Circle USDC on Monad testnet.
@@ -10,6 +45,8 @@ export const CHAIN_ID = monadTestnet.id; // 10143
  * Verified on-chain: name "USDC", version "2", decimals 6, and both
  * EIP-3009 `transferWithAuthorization` overloads are reachable — which is
  * what makes the real x402 `exact` scheme work on this chain.
+ *
+ * The same address is used on the fork, because a fork *is* that chain.
  */
 export const USDC_ADDRESS: Address = "0x534b2f3A21130d7a60830c2Df862319e593943A3";
 export const USDC_DECIMALS = 6;
@@ -24,12 +61,13 @@ export const EXPLORERS = {
   monadscan: "https://testnet.monadscan.com",
 } as const;
 
+/** A local fork has no explorer, so links are suppressed rather than broken. */
 export function txUrl(hash: string) {
-  return `${EXPLORERS.monadVision}/tx/${hash}`;
+  return IS_LOCAL ? "" : `${EXPLORERS.monadVision}/tx/${hash}`;
 }
 
 export function addressUrl(address: string) {
-  return `${EXPLORERS.monadVision}/address/${address}`;
+  return IS_LOCAL ? "" : `${EXPLORERS.monadVision}/address/${address}`;
 }
 
 /**

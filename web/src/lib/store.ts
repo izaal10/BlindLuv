@@ -22,6 +22,10 @@ export interface StoredProfile {
   address: Address;
   profile: AgentProfile;
   city: string;
+  /** Stated fact, never shown to the model — used as a hard filter. */
+  gender: string;
+  /** Genders this person wants to meet. Empty means open to anyone. */
+  seeking: string[];
   /** Kept server-side; the chain sees only keccak256(profile‖salt). */
   salt: Hex;
   commitment: Hex;
@@ -59,12 +63,20 @@ export function randomSalt(): Hex {
 }
 
 /** keccak256 over the canonical profile encoding plus the private salt. */
-export function computeCommitment(profile: AgentProfile, city: string, salt: Hex): Hex {
+export function computeCommitment(
+  profile: AgentProfile,
+  city: string,
+  gender: string,
+  seeking: string[],
+  salt: Hex,
+): Hex {
   const canonical = JSON.stringify({
     traits: profile.traits,
     interests: [...profile.interests].sort(),
     dealBreakers: [...profile.dealBreakers].sort(),
     city,
+    gender,
+    seeking: [...seeking].sort(),
     salt,
   });
   return keccak256(toHex(canonical));

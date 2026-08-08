@@ -111,6 +111,30 @@ export async function settleAndRespond(
   gate: Extract<GateResult, { ok: true }>,
 ): Promise<NextResponse> {
   const receipt = await settle(gate.payment, gate.requirements);
+
+  /**
+   * If settlement fails, the payload must not go out.
+   *
+   * Verification happens before the work and settlement after it, so a
+   * signature that verified but could not be broadcast — an EIP-1271 wallet
+   * whose delegate rejects it, a relayer out of gas, a nonce raced by another
+   * request — would otherwise hand over the identity for free. That directly
+   * violates the one rule this whole product rests on: no payment, no
+   * disclosure. Losing the work we already did is the cheaper mistake.
+   */
+  if (!receipt.success) {
+    const response = NextResponse.json(
+      {
+        x402Version: X402_VERSION,
+        error: receipt.errorReason ?? "Payment could not be settled.",
+        accepts: [gate.requirements],
+      },
+      { status: 402, headers: { "Cache-Control": "no-store" } },
+    );
+    response.headers.set("X-PAYMENT-RESPONSE", encodeSettleHeader(receipt));
+    return response;
+  }
+
   const response = NextResponse.json(
     { ...(payload as Record<string, unknown>), payment: receipt },
     { headers: { "Cache-Control": "no-store" } },

@@ -16,7 +16,8 @@ Built with [monskills](https://skills.devnads.com). AI routed through
 
 | Doc | What's in it |
 | --- | --- |
-| [docs/TESTING.md](docs/TESTING.md) | **start here** — connect MetaMask, add Monad Testnet, get MON and USDC |
+| [docs/LOCAL.md](docs/LOCAL.md) | **start here** — run everything locally on a Monad fork, no faucet needed |
+| [docs/TESTING.md](docs/TESTING.md) | connect MetaMask, add Monad Testnet, get MON and USDC |
 | [docs/9ROUTER-SETUP.md](docs/9ROUTER-SETUP.md) | **getting your API key**, step by step |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | how the pieces fit, what's on-chain vs off-chain, the contract API |
 | [docs/9ROUTER.md](docs/9ROUTER.md) | how the agent talks to the gateway, and why it is built defensively |
@@ -79,16 +80,17 @@ their way to another person's contact details.
 ## Quick start
 
 ```bash
-# contracts
-cd contracts
-forge test                       # 18 passing
-
-# web
-cd ../web
-cp .env.example .env.local       # every value is optional
-npm install
+# everything working locally, including the on-chain half
+cd web && npm install
+npm run chain:local                                    # terminal 1
+npm run setup:local -- 0xYourWallet 0xSecondWallet     # terminal 2
 npm run dev
+npm run e2e:local                                      # asserts the whole flow
 ```
+
+Anvil forks Monad testnet, so USDC is the real contract with real EIP-3009 —
+the fork just adds money, which removes the captcha-gated faucet from the
+critical path. Full walkthrough in [docs/LOCAL.md](docs/LOCAL.md).
 
 The app boots with **no configuration at all**. The status panel on the landing
 page names exactly which capabilities are live and which are switched off, so a

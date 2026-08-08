@@ -81,6 +81,91 @@ export function TextArea({
   );
 }
 
+/** Single-choice pills. Cheaper to answer than a dropdown on a phone. */
+export function PillChoice({
+  label,
+  hint,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <label className="label">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => {
+          const on = value === o.value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => onChange(o.value)}
+              className="rounded-full px-3.5 py-2 text-[12.5px] transition-colors"
+              style={{
+                background: on ? "var(--rose)" : "var(--surface-1)",
+                color: on ? "#fff" : "var(--text-secondary)",
+                border: `1px solid ${on ? "var(--rose)" : "var(--border)"}`,
+              }}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {hint ? <p className="mt-1.5 text-[11.5px] text-[var(--text-muted)]">{hint}</p> : null}
+    </div>
+  );
+}
+
+/** Multi-choice pills. Selecting nothing means "open to anyone". */
+export function PillMulti({
+  label,
+  hint,
+  options,
+  values,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  options: ReadonlyArray<{ value: string; label: string }>;
+  values: string[];
+  onChange: (v: string[]) => void;
+}) {
+  return (
+    <div className="mb-4">
+      <label className="label">{label}</label>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => {
+          const on = values.includes(o.value);
+          return (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => onChange(on ? values.filter((v) => v !== o.value) : [...values, o.value])}
+              className="rounded-full px-3.5 py-2 text-[12.5px] transition-colors"
+              style={{
+                background: on ? "var(--wine)" : "var(--surface-1)",
+                color: on ? "#FFF3EE" : "var(--text-secondary)",
+                border: `1px solid ${on ? "var(--wine)" : "var(--border)"}`,
+              }}
+            >
+              {on ? "✓ " : ""}
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+      {hint ? <p className="mt-1.5 text-[11.5px] text-[var(--text-muted)]">{hint}</p> : null}
+    </div>
+  );
+}
+
 export function Notice({ tone, children }: { tone: "error" | "info" | "ok"; children: ReactNode }) {
   const color =
     tone === "error" ? "var(--rose-deep)" : tone === "ok" ? "var(--coral-deep)" : "var(--text-secondary)";

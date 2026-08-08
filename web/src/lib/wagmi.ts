@@ -1,11 +1,13 @@
 import { cookieStorage, createConfig, createStorage, http } from "wagmi";
 import { injected, metaMask } from "wagmi/connectors";
 
-import { CHAIN } from "./chain";
+import { CHAIN, RPC_URL, monadLocal } from "./chain";
+import { monadTestnet } from "viem/chains";
 
 /**
- * Monad testnet only. The wallet is the identity primitive here — there is no
- * email and no password anywhere in BlindLuv.
+ * One chain at a time, chosen by NEXT_PUBLIC_CHAIN_MODE: Monad testnet, or a
+ * local Anvil fork of it. The wallet is the identity primitive here — there is
+ * no email and no password anywhere in BlindLuv.
  *
  * Two things worth knowing:
  *
@@ -23,8 +25,11 @@ export const wagmiConfig = createConfig({
   chains: [CHAIN],
   connectors: [injected(), metaMask()],
   storage: createStorage({ storage: cookieStorage }),
+  // CHAIN is a union of the two possible targets, so the transport map has to
+  // cover both ids even though only one chain is ever active.
   transports: {
-    [CHAIN.id]: http(process.env.NEXT_PUBLIC_MONAD_RPC_URL ?? "https://testnet-rpc.monad.xyz"),
+    [monadTestnet.id]: http(CHAIN.id === monadTestnet.id ? RPC_URL : undefined),
+    [monadLocal.id]: http(CHAIN.id === monadLocal.id ? RPC_URL : undefined),
   },
   ssr: true,
 });

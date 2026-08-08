@@ -10,7 +10,7 @@ import { Header } from "@/components/Header";
 import { MatchCard, type BlindMatch } from "@/components/MatchCard";
 import { StatusPanel } from "@/components/StatusPanel";
 import { Stepper, type StepIndex } from "@/components/Stepper";
-import { Chip, Field, Notice, Row, TextArea } from "@/components/ui";
+import { Chip, Field, Notice, PillChoice, PillMulti, Row, TextArea } from "@/components/ui";
 import { blindluvAbi, usdcAbi } from "@/lib/abi";
 import {
   BLINDLUV_ADDRESS,
@@ -22,6 +22,7 @@ import {
   txUrl,
   withBuffer,
 } from "@/lib/chain";
+import { GENDERS } from "@/lib/gender";
 import { useIsHydrated } from "@/lib/useIsHydrated";
 import { PaymentError, fetchWithPayment } from "@/lib/x402/client";
 import type { PaymentRequirements, SettleResponse } from "@/lib/x402/types";
@@ -62,6 +63,8 @@ export default function Home() {
 
   // ---- step 1: profile. Four things, and only two are about you. ----------
   const [form, setForm] = useState({ city: "", about: "", dealBreakers: "", displayName: "", contact: "" });
+  const [gender, setGender] = useState("");
+  const [seeking, setSeeking] = useState<string[]>([]);
   const [commitment, setCommitment] = useState<Hex | null>(null);
   const [profileTags, setProfileTags] = useState<string[]>([]);
   const [profileSource, setProfileSource] = useState<"router" | "heuristic" | null>(null);
@@ -153,6 +156,8 @@ export default function Home() {
       body: JSON.stringify({
         address,
         city: form.city,
+        gender,
+        seeking,
         likes: form.about,
         dislikes: form.dealBreakers,
         displayName: form.displayName,
@@ -200,8 +205,11 @@ export default function Home() {
     setSelectedId(json.matches?.[0]?.id ?? null);
     if (!json.matches?.length) {
       setNote(json.note ?? "Nobody else in your city yet — create a second profile from another wallet to try the flow.");
-    } else if (json.vetoedCount) {
-      setNote(`${json.vetoedCount} profile(s) were ruled out by a stated deal-breaker.`);
+    } else {
+      const parts: string[] = [];
+      if (json.vetoedCount) parts.push(`${json.vetoedCount} ruled out by a deal-breaker`);
+      if (json.filteredByGender) parts.push(`${json.filteredByGender} outside who you want to meet`);
+      if (parts.length) setNote(parts.join(" · "));
     }
   });
 
@@ -313,7 +321,7 @@ export default function Home() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const profileReady = form.city.trim() && form.about.trim().length >= 8 && form.displayName.trim();
+  const profileReady = Boolean(form.city.trim() && gender && form.about.trim().length >= 8 && form.displayName.trim());
 
   // -------------------------------------------------------------------- views
 
@@ -360,6 +368,20 @@ export default function Home() {
                     value={form.city}
                     onChange={set("city")}
                     hint="Matches are local only."
+                  />
+                  <PillChoice
+                    label="You are"
+                    options={GENDERS}
+                    value={gender}
+                    onChange={setGender}
+                    hint="Never sent to the AI — it is a filter, not something to be scored on."
+                  />
+                  <PillMulti
+                    label="You want to meet"
+                    options={GENDERS}
+                    values={seeking}
+                    onChange={setSeeking}
+                    hint="Pick any. Leave empty to be open to everyone. Both sides must want each other to be shown."
                   />
                   <TextArea
                     label="What you're into"
