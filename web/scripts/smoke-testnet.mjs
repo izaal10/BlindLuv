@@ -264,11 +264,13 @@ async function main() {
   console.log("\n6. staking and settlement");
   const balance = await pub.readContract({ address: USDC, abi: erc20, functionName: "balanceOf", args: [alice.address] });
   if (balance === 0n) {
-    skip("both stake → session unlocks", "test wallets hold 0 USDC (faucet is captcha-gated)");
+    skip("both stake → session unlocks", "these wallets are generated per run and hold 0 USDC");
     skip("x402 pays and reveals identity", "same");
     skip("attendance confirmed, stake returned", "same");
-    console.log("     These three are covered end-to-end by `npm run e2e:local`,");
-    console.log("     where the fork can mint USDC against the same real contract.");
+    console.log("     Covered end-to-end by `npm run e2e:local`, where the fork mints USDC");
+    console.log("     against this same contract. To exercise them here instead, claim USDC");
+    console.log("     at https://faucet.circle.com (Monad Testnet, 20 per 2h) and drive the");
+    console.log("     flow from the UI with a wallet you control.");
   } else {
     ok("test wallet holds USDC — run the full flow manually", true, `${balance} atomic units`);
   }

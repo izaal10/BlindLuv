@@ -119,7 +119,7 @@ The mirror image of the rule is the **emptying transaction** exception: an
 undelegated account that has been quiet for three blocks *may* spend below the
 reserve. That is the only reason a sweep is possible, and it is what lets the
 smoke test return its leftover MON instead of stranding half a MON per run in a
-discarded wallet — which matters when the only refill is a captcha-gated faucet.
+discarded wallet — which matters when every refill means a trip to the faucet.
 
 ---
 
@@ -170,10 +170,10 @@ everything else follows from it:
 | USDC | same address, forked | same address, real |
 | 9Router | same endpoint | same endpoint |
 | Store | in-memory | Upstash Redis |
-| Explorer links | hidden (a fork has none) | MonadVision |
+| Explorer links | hidden (a fork has none) | Monadscan |
 
 All four steps are **done** — the contract is live at
-[`0xbD32698e…24c64`](https://testnet.monadexplorer.com/address/0xbD32698e3A4E68856d6545CC02823F837AF24c64),
+[`0xbD32698e…24c64`](https://testnet.monadscan.com/address/0xbD32698e3A4E68856d6545CC02823F837AF24c64),
 verified, and the deployment runs on Upstash.
 
 ### Checking a live deployment
@@ -187,8 +187,12 @@ npm run smoke:testnet
 
 The production sibling of `e2e:local`. It drives the same flow against the real
 contract as far as MON alone allows, then **says which steps it skipped** —
-staking and settlement need USDC, and testnet USDC comes from the same
-captcha-gated faucet. A smoke test that hid that would be worse than none.
+staking and settlement need USDC, and the wallets it generates per run hold
+none. A smoke test that hid that would be worse than none.
+
+To exercise those steps on testnet instead, claim USDC at
+<https://faucet.circle.com> (Monad Testnet is supported, 20 USDC per address
+every 2 hours) and drive the flow from the UI with a wallet you control.
 
 It funds two throwaway wallets from the operator and sweeps them back at the
 end, so a run costs about **0.05 MON** rather than the 1 MON it strands

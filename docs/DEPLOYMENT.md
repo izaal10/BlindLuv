@@ -232,9 +232,17 @@ holds a runtime match for the same address.
 ## 3. Getting test USDC
 
 Stakes and x402 fees are paid in Circle USDC on Monad testnet
-(`0x534b2f3A21130d7a60830c2Df862319e593943A3`, 6 decimals). Users need a small
-balance; the facilitator and agent wallets need MON for gas but never hold user
-funds.
+(`0x534b2f3A21130d7a60830c2Df862319e593943A3`, 6 decimals).
+
+**<https://faucet.circle.com>** — Circle's own faucet, Monad Testnet is a
+supported network. 20 USDC per address every 2 hours, which is ~130 full runs.
+
+> That address is the **token contract**, not a destination. Sending USDC to it
+> destroys the tokens — there is no owner who can return them. A faucet does not
+> send *to* it; it calls it, and it credits *you*.
+
+Users need a small balance. The facilitator and agent wallets need MON for gas
+but never hold user funds.
 
 ---
 
@@ -269,9 +277,9 @@ npm run smoke:testnet
 22 assertions against the live deployment: config, AI matching with the gender
 filter, real on-chain commitments, the agent opening a session, and the x402
 challenge. Staking and settlement are **reported as skipped** — they need USDC,
-and the faucet is captcha-gated — so read the output rather than just the exit
-code. Those three are covered end-to-end by `npm run e2e:local` against the
-same contract on a fork.
+which you can claim at <https://faucet.circle.com> — so read the output, not
+just the exit code. Those three are covered end-to-end by `npm run e2e:local`
+against the same contract on a fork.
 
 The script funds two throwaway wallets from the operator and sweeps them back,
 so a run costs ~0.05 MON. Expect it to pause a couple of seconds after funding:
