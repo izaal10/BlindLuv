@@ -123,6 +123,11 @@ rather than erroring. Expose 9Router publicly first.
 
 ## 2. Monad testnet contract
 
+> **Already done.** `BlindLuv` is live at
+> [`0xbD32698e3A4E68856d6545CC02823F837AF24c64`](https://testnet.monadscan.com/address/0xbD32698e3A4E68856d6545CC02823F837AF24c64),
+> source-verified on Monadscan and MonadVision, with the agent authorised at
+> construction. The rest of this section is what to repeat for a fresh deploy.
+
 ### Fund the operator wallet
 
 Deployment needs testnet MON in
@@ -217,6 +222,11 @@ curl -X POST https://agents.devnads.com/v1/verify \
 This covers MonadVision, Socialscan and Monadscan in one request — prefer it
 over `forge verify-contract` against a single explorer.
 
+`jq` is not always installed; the payload is plain JSON, so building it in
+Python works just as well. A `partial match` from MonadVision alongside a
+`Pass - Verified` from Monadscan is the normal result when Sourcify already
+holds a runtime match for the same address.
+
 ---
 
 ## 3. Getting test USDC
@@ -245,3 +255,25 @@ curl -s -X POST $APP/api/reveal -H 'Content-Type: application/json' \
 A green run looks like: `ai.configured: true` with a non-loopback host,
 `stats.backend: "kv"`, `settlement.available: true`, and a `402` carrying
 `accepts[0]`.
+
+### Or run the whole thing
+
+```bash
+cd web
+OPERATOR_PRIVATE_KEY=0x… \
+BLINDLUV=0xbD32698e3A4E68856d6545CC02823F837AF24c64 \
+APP=https://blindluv-id.vercel.app \
+npm run smoke:testnet
+```
+
+22 assertions against the live deployment: config, AI matching with the gender
+filter, real on-chain commitments, the agent opening a session, and the x402
+challenge. Staking and settlement are **reported as skipped** — they need USDC,
+and the faucet is captcha-gated — so read the output rather than just the exit
+code. Those three are covered end-to-end by `npm run e2e:local` against the
+same contract on a fork.
+
+The script funds two throwaway wallets from the operator and sweeps them back,
+so a run costs ~0.05 MON. Expect it to pause a couple of seconds after funding:
+see [LOCAL.md](LOCAL.md#freshly-funded-wallets-cannot-spend-immediately) for why
+a wallet with a visible balance still cannot spend yet.
