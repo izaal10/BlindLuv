@@ -8,6 +8,7 @@ import { useAccount, usePublicClient, useReadContract, useWalletClient, useWrite
 import { ConnectGate } from "@/components/ConnectGate";
 import { Header } from "@/components/Header";
 import { MatchCard, type BlindMatch } from "@/components/MatchCard";
+import { FundingPanel } from "@/components/FundingPanel";
 import { StatusPanel } from "@/components/StatusPanel";
 import { Stepper, type StepIndex } from "@/components/Stepper";
 import { Chip, Field, Notice, PillChoice, PillMulti, Row, TextArea } from "@/components/ui";
@@ -717,6 +718,7 @@ export default function Home() {
 
           <aside>
             <StatusPanel />
+            <FundingPanel />
           </aside>
         </div>
       </main>
