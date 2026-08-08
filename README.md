@@ -150,18 +150,17 @@ A matchmaker that tells everyone they are a 95% match is not a matchmaker.
 | Component | State |
 | --- | --- |
 | `BlindLuv.sol` | complete · 18/18 tests passing |
-| AI agent via 9Router + deterministic fallback | complete · verified against a mock gateway, incl. failure path |
 | x402 facilitator | complete · verified against live Monad testnet |
 | Frontend (7-step flow) | complete · typechecks, lints and builds clean |
 | Vercel deployment | **live and public** at the URLs above |
-| AI agent | **live** — Claude Sonnet 5 (`cc/claude-sonnet-5`) via a self-hosted 9Router |
+| AI agent | **live** — Claude Sonnet 5 (`cc/claude-sonnet-5`) via self-hosted 9Router, with a deterministic fallback |
 | Monad contract deployment | **pending** — needs testnet MON in the operator wallet |
 | KV persistence | **pending** — connect Upstash Redis, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | Indexer (activity feed) | not started |
 
 ### What still needs you
 
-Three things, each independent. The app runs and is honest about all three.
+Two things, each independent. The app runs and is honest about both.
 
 | # | Blocker | Why I can't do it |
 | --- | --- | --- |
