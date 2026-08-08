@@ -166,15 +166,17 @@ A matchmaker that tells everyone they are a 95% match is not a matchmaker.
 | Frontend (7-step flow) | complete · typechecks, lints and builds clean |
 | Vercel deployment | **live and public** — 9 aliases, all on the same production build |
 | AI agent | **live** — Claude Sonnet 5 (`cc/claude-sonnet-5`) via self-hosted 9Router, smoke-tested in production |
-| Monad contract deployment | **pending** — needs testnet MON in the operator wallet |
-| KV persistence | **pending** — connect Upstash Redis, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
+| Monad contract deployment | **live** — [`0xbD32698e…24c64`](https://testnet.monadexplorer.com/address/0xbD32698e3A4E68856d6545CC02823F837AF24c64), source verified |
+| KV persistence | **live** — Upstash Redis; `/api/config` reports `backend: "kv"` |
 | Indexer (activity feed) | not started |
+
+The whole thing is checked against the live deployment by
+`npm run smoke:testnet` — 22 assertions covering config, AI matching, on-chain
+commitments, the agent opening a session, and the x402 challenge.
 
 ### What still needs you
 
-Two things, each independent. The app runs and is honest about both.
-
-| # | Blocker | Why I can't do it |
+| # | Item | Why |
 | --- | --- | --- |
-| 1 | Testnet MON in `0xeB63Fa41DFf47C09D68E2Ad3582299F81da5f72f` | the Monad faucet is captcha-gated |
-| 2 | Upstash Redis connected in Vercel | provisioning now goes through an interactive Marketplace OAuth flow |
+| 1 | **Rotate the 9Router API key** | it was briefly readable in this public repo |
+| 2 | Testnet USDC, if you want to exercise staking on testnet | the faucet is captcha-gated; `npm run e2e:local` covers those steps on a fork instead |

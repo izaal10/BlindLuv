@@ -10,6 +10,7 @@
     "chain:local": "anvil --fork-url https://testnet-rpc.monad.xyz --chain-id 31337 --silent",
     "setup:local": "node ../scripts/local-setup.mjs",
     "e2e:local": "node scripts/e2e-local.mjs",
+    "smoke:testnet": "node scripts/smoke-testnet.mjs",
     "logo": "node scripts/build-logo.mjs"
   },
   "dependencies": {

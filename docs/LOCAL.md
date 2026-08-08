@@ -90,6 +90,39 @@ the only money that moved was the agent's fee.
 
 ---
 
+## Freshly funded wallets cannot spend immediately
+
+This one only appears on real Monad, so the fork will never show it to you.
+
+Monad's **reserve balance** puts a 10 MON floor under every EOA, and consensus
+budgets a sender's gas against `min(10 MON, lagged_state_balance)` — where the
+lagged state trails by three blocks. Fund a new wallet and send from it right
+away and you get:
+
+```
+Signer had insufficient balance
+```
+
+even though the money is provably there:
+
+```
+$ cast balance 0x2785… --rpc-url https://testnet-rpc.monad.xyz --block finalized
+500000000000000000
+```
+
+The balance is visible; the *gas budget* is not yet. So waiting for the receipt
+is not enough, and neither is waiting for the balance to appear — the thing to
+wait for is **blocks**. `smoke-testnet.mjs` waits four, and retries once more on
+the same error, because a three-block window is still a race under load.
+
+The mirror image of the rule is the **emptying transaction** exception: an
+undelegated account that has been quiet for three blocks *may* spend below the
+reserve. That is the only reason a sweep is possible, and it is what lets the
+smoke test return its leftover MON instead of stranding half a MON per run in a
+discarded wallet — which matters when the only refill is a captcha-gated faucet.
+
+---
+
 ## Two things this surfaced
 
 ### EIP-7702 wallets cannot pay via x402 `exact`
@@ -139,17 +172,27 @@ everything else follows from it:
 | Store | in-memory | Upstash Redis |
 | Explorer links | hidden (a fork has none) | MonadVision |
 
-To go live:
+All four steps are **done** — the contract is live at
+[`0xbD32698e…24c64`](https://testnet.monadexplorer.com/address/0xbD32698e3A4E68856d6545CC02823F837AF24c64),
+verified, and the deployment runs on Upstash.
 
-1. Fund the operator wallet with >10 MON — see
-   [DEPLOYMENT.md](DEPLOYMENT.md#fund-the-operator-wallet)
-2. Deploy and verify the contract
-3. Set `NEXT_PUBLIC_BLINDLUV_ADDRESS` on Vercel and redeploy
-4. Connect Upstash Redis so profiles survive across serverless instances
+### Checking a live deployment
 
-The same `e2e-local.mjs` runs against testnet by pointing `LOCAL_RPC` and
-`APP` at the deployed environment — though it will spend real testnet USDC, so
-give the generated accounts a balance first.
+```bash
+OPERATOR_PRIVATE_KEY=0x… \
+BLINDLUV=0xbD32698e3A4E68856d6545CC02823F837AF24c64 \
+APP=https://blindluv-id.vercel.app \
+npm run smoke:testnet
+```
+
+The production sibling of `e2e:local`. It drives the same flow against the real
+contract as far as MON alone allows, then **says which steps it skipped** —
+staking and settlement need USDC, and testnet USDC comes from the same
+captcha-gated faucet. A smoke test that hid that would be worse than none.
+
+It funds two throwaway wallets from the operator and sweeps them back at the
+end, so a run costs about **0.05 MON** rather than the 1 MON it strands
+without the sweep.
 
 ---
 
