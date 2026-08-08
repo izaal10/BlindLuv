@@ -111,6 +111,26 @@ Put it behind TLS and use `https://your-domain/v1`.
 
 ---
 
+## Current deployment
+
+Configured and live:
+
+```
+AI_BASE_URL=http://103.142.21.213:20128/v1
+AI_MODEL=cc/claude-sonnet-5
+```
+
+Available on that router: `cc/claude-sonnet-5`, `cc/claude-opus-5`,
+`cc/claude-fable-5`, `cc/claude-haiku-4-5-20251001`.
+
+> ⚠️ **The endpoint is plain HTTP.** Vercel reaches it fine — server-to-server
+> calls have no mixed-content rule — but the API key and every profile answer
+> cross the public internet unencrypted, and anyone on the path can read both.
+> Put a TLS reverse proxy (Caddy gets you a certificate in one line) or a
+> Cloudflare Tunnel in front of it before this handles anyone's real data.
+
+---
+
 ## Step 6 — Give me the three values
 
 ```

@@ -154,8 +154,8 @@ A matchmaker that tells everyone they are a 95% match is not a matchmaker.
 | x402 facilitator | complete · verified against live Monad testnet |
 | Frontend (7-step flow) | complete · typechecks, lints and builds clean |
 | Vercel deployment | **live and public** at the URLs above |
+| AI agent | **live** — Claude Sonnet 5 (`cc/claude-sonnet-5`) via a self-hosted 9Router |
 | Monad contract deployment | **pending** — needs testnet MON in the operator wallet |
-| 9Router endpoint | **pending** — needs a publicly reachable instance + key |
 | KV persistence | **pending** — connect Upstash Redis, see [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) |
 | Indexer (activity feed) | not started |
 
@@ -166,5 +166,4 @@ Three things, each independent. The app runs and is honest about all three.
 | # | Blocker | Why I can't do it |
 | --- | --- | --- |
 | 1 | Testnet MON in `0xeB63Fa41DFf47C09D68E2Ad3582299F81da5f72f` | the Monad faucet is captcha-gated |
-| 2 | A public 9Router URL + API key | 9Router is software you host; there is no hosted API to point at |
-| 3 | Upstash Redis connected in Vercel | provisioning now goes through an interactive Marketplace OAuth flow |
+| 2 | Upstash Redis connected in Vercel | provisioning now goes through an interactive Marketplace OAuth flow |

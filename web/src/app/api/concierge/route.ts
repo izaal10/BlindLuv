@@ -7,6 +7,9 @@ import { getMatch, getProfile } from "@/lib/store";
 import { requirePayment, settleAndRespond } from "@/lib/x402/gate";
 
 export const runtime = "nodejs";
+// A Sonnet round-trip through 9Router runs ~3-5s (one agent call), which is
+// comfortably over Vercel's short default budget.
+export const maxDuration = 60;
 
 const CONCIERGE_FEE = parseUsdc(process.env.NEXT_PUBLIC_CONCIERGE_FEE_USDC ?? "0.02");
 

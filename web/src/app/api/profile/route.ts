@@ -5,6 +5,9 @@ import { agentIsLive, buildProfile } from "@/lib/ai/agent";
 import { computeCommitment, getProfile, putProfile, randomSalt } from "@/lib/store";
 
 export const runtime = "nodejs";
+// A Sonnet round-trip through 9Router runs ~3-5s (one agent call), which is
+// comfortably over Vercel's short default budget.
+export const maxDuration = 60;
 
 /**
  * Turn free text into a matching profile and return the commitment the user
