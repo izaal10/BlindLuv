@@ -15,6 +15,7 @@ import { blindluvAbi, usdcAbi } from "@/lib/abi";
 import {
   BLINDLUV_ADDRESS,
   CHAIN_ID,
+  CHAIN_LABEL,
   GAS_CEILING,
   USDC_ADDRESS,
   formatUsdc,
@@ -321,7 +322,22 @@ export default function Home() {
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const profileReady = Boolean(form.city.trim() && gender && form.about.trim().length >= 8 && form.displayName.trim());
+  /**
+   * Name what is still missing, rather than just greying the button out.
+   *
+   * Two of the four requirements are easy to miss — "You are" is a pill row
+   * with no default, and "Your name" sits inside the box captioned "hidden
+   * until you have both paid and staked", which reads as optional. Someone who
+   * skips either gets a dead button and no idea why, which is indistinguishable
+   * from the app being broken.
+   */
+  const missing = [
+    form.city.trim() ? null : "your city",
+    gender ? null : "who you are",
+    form.about.trim().length >= 8 ? null : "a line about what you're into",
+    form.displayName.trim() ? null : "your name",
+  ].filter(Boolean) as string[];
+  const profileReady = missing.length === 0;
 
   // -------------------------------------------------------------------- views
 
@@ -341,7 +357,12 @@ export default function Home() {
       <main className="mx-auto max-w-[1120px] px-6 pb-24 pt-10 sm:px-8">
         <Stepper current={step} furthest={furthest} onJump={setViewing} />
 
-        {wrongChain ? <Notice tone="error">Switch to Monad Testnet to continue.</Notice> : null}
+        {wrongChain ? (
+          <Notice tone="error">
+            Your wallet is on the wrong network. Steps 2 to 4 need {CHAIN_LABEL} (chain {CHAIN_ID}) — use the switch
+            button in the header. Writing your profile still works.
+          </Notice>
+        ) : null}
         {!contractReady ? (
           <Notice tone="info">
             The contract is not deployed on this environment yet, so steps 3 and 4 are read-only. Matching still works.
@@ -418,6 +439,13 @@ export default function Home() {
                   >
                     {busy === "profile" ? "Agent is reading…" : "Create my profile"}
                   </button>
+
+                  {!profileReady ? (
+                    <p className="mt-3 text-center text-[12.5px] text-[var(--text-muted)]">
+                      Still need {missing.length > 1 ? missing.slice(0, -1).join(", ") + " and " : ""}
+                      {missing[missing.length - 1]}.
+                    </p>
+                  ) : null}
 
                   {commitment ? (
                     <div className="mt-5 border-t border-[var(--border)] pt-5">

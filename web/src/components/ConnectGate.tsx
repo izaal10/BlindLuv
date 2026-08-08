@@ -3,8 +3,8 @@
 import Image from "next/image";
 import { useConnect } from "wagmi";
 
-import { CHAIN_ID } from "@/lib/chain";
-import { addMonadTestnet } from "@/lib/wagmi";
+import { CHAIN_ID, CHAIN_LABEL } from "@/lib/chain";
+import { addAppChain } from "@/lib/wagmi";
 import { useMemo, useState } from "react";
 
 /**
@@ -46,7 +46,17 @@ export function ConnectGate() {
               key={c.uid}
               className="btn btn-wallet mb-2 flex w-full items-center justify-center gap-2.5"
               disabled={isPending}
-              onClick={() => connect({ connector: c, chainId: CHAIN_ID })}
+              /**
+               * Deliberately no `chainId` here.
+               *
+               * Passing one makes wagmi switch networks as part of connecting,
+               * so a wallet that has never heard of this chain fails the whole
+               * connect — and the user is left on a screen whose only other
+               * button is the one they were told to press second. Connect
+               * first; the flow behind this gate asks for the right network
+               * and offers to add it.
+               */
+              onClick={() => connect({ connector: c })}
             >
               {c.icon ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -70,13 +80,13 @@ export function ConnectGate() {
           onClick={async () => {
             setAddError(null);
             try {
-              await addMonadTestnet();
+              await addAppChain();
             } catch (e) {
               setAddError(e instanceof Error ? e.message : "Could not add the network.");
             }
           }}
         >
-          Add Monad Testnet first
+          Add {CHAIN_LABEL} to your wallet
         </button>
 
         {(error || addError) && (
@@ -90,7 +100,7 @@ export function ConnectGate() {
       </div>
 
       <p className="mono mt-8 text-[10.5px] text-[var(--text-muted)]">
-        Monad Testnet · chain {CHAIN_ID} · testnet funds only
+        {CHAIN_LABEL} · chain {CHAIN_ID} · testnet funds only
       </p>
     </div>
   );

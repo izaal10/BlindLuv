@@ -40,8 +40,8 @@ declare module "wagmi" {
   }
 }
 
-/** Params for `wallet_addEthereumChain`, derived from the viem chain. */
-export const MONAD_TESTNET_PARAMS = {
+/** Params for `wallet_addEthereumChain`, derived from the active viem chain. */
+export const APP_CHAIN_PARAMS = {
   chainId: `0x${CHAIN.id.toString(16)}`,
   chainName: CHAIN.name,
   nativeCurrency: CHAIN.nativeCurrency,
@@ -54,23 +54,23 @@ interface Eip1193Provider {
 }
 
 /**
- * Ask the wallet to add Monad Testnet.
+ * Ask the wallet to switch to whichever chain this build targets, adding it
+ * first if the wallet has never seen it.
  *
  * wagmi's `switchChain` already falls back to `wallet_addEthereumChain`, but
  * only once a connector is active. This works straight from `window.ethereum`,
- * so someone can add the network before connecting — which is the order most
- * people actually try.
+ * so it is usable both before connecting and from the wrong-network banner.
  */
-export async function addMonadTestnet(): Promise<void> {
+export async function addAppChain(): Promise<void> {
   const provider = (globalThis as { ethereum?: Eip1193Provider }).ethereum;
   if (!provider) throw new Error("No injected wallet found. Install MetaMask, then reload this page.");
 
   try {
-    await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: MONAD_TESTNET_PARAMS.chainId }] });
+    await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: APP_CHAIN_PARAMS.chainId }] });
   } catch (error) {
     // 4902 = chain unknown to the wallet. Anything else is a real failure.
     const code = (error as { code?: number })?.code;
     if (code !== 4902 && code !== -32603) throw error;
-    await provider.request({ method: "wallet_addEthereumChain", params: [MONAD_TESTNET_PARAMS] });
+    await provider.request({ method: "wallet_addEthereumChain", params: [APP_CHAIN_PARAMS] });
   }
 }

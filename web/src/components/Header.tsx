@@ -4,9 +4,9 @@ import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 
-import { CHAIN_ID, shortAddress } from "@/lib/chain";
+import { CHAIN_ID, CHAIN_LABEL, shortAddress } from "@/lib/chain";
 import { useIsHydrated } from "@/lib/useIsHydrated";
-import { addMonadTestnet } from "@/lib/wagmi";
+import { addAppChain } from "@/lib/wagmi";
 
 export function Header() {
   const { address, isConnected, chainId } = useAccount();
@@ -52,7 +52,7 @@ export function Header() {
   const handleAddNetwork = async () => {
     setAddError(null);
     try {
-      await addMonadTestnet();
+      await addAppChain();
     } catch (e) {
       setAddError(e instanceof Error ? e.message : "Could not add the network.");
     }
@@ -74,7 +74,7 @@ export function Header() {
         <div className="relative flex items-center gap-2.5" ref={popover}>
           {wrongChain ? (
             <button className="btn btn-gold" disabled={switching} onClick={() => switchChain({ chainId: CHAIN_ID })}>
-              {switching ? "Switching…" : "Switch to Monad Testnet"}
+              {switching ? "Switching…" : `Switch to ${CHAIN_LABEL}`}
             </button>
           ) : null}
 
@@ -103,7 +103,7 @@ export function Header() {
                     className="btn mb-1.5 flex w-full items-center gap-2.5 !justify-start"
                     onClick={() => {
                       setOpen(false);
-                      connect({ connector: c, chainId: CHAIN_ID });
+                      connect({ connector: c });
                     }}
                   >
                     {c.icon ? (
@@ -125,7 +125,7 @@ export function Header() {
 
               <div className="mt-2 border-t border-[var(--border)] pt-2.5">
                 <button className="btn w-full !py-2 text-[12px]" onClick={handleAddNetwork}>
-                  Add Monad Testnet to my wallet
+                  Add {CHAIN_LABEL} to my wallet
                 </button>
                 <p className="mt-2 px-1 text-[10.5px] leading-[1.5] text-[var(--text-muted)]">
                   Chain 10143 · testnet-rpc.monad.xyz. Add it first if your wallet has never seen Monad.

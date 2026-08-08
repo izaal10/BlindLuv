@@ -35,6 +35,16 @@ export const monadLocal = defineChain({
 export const CHAIN = IS_LOCAL ? monadLocal : monadTestnet;
 export const CHAIN_ID = CHAIN.id;
 
+/**
+ * What to call the network in the UI.
+ *
+ * Hard-coding "Monad Testnet" in a message is wrong half the time: in local
+ * mode the app wants chain 31337, so telling someone to switch to Monad
+ * Testnet sends them to the one network that will *not* work. Every
+ * user-facing mention of the network reads this.
+ */
+export const CHAIN_LABEL = IS_LOCAL ? "BlindLuv Local" : "Monad Testnet";
+
 export const RPC_URL = IS_LOCAL
   ? LOCAL_RPC
   : (process.env.NEXT_PUBLIC_MONAD_RPC_URL ?? "https://testnet-rpc.monad.xyz");
