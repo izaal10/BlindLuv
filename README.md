@@ -250,22 +250,3 @@ in its output instead of quietly stopping short.
 | ✅ | Deployed and verified on Monad testnet |
 | ✅ | Upstash Redis, so serverless instances share profiles |
 | ✅ | Vercel production, 9 aliases |
-| ⬜ | Envio indexer for a public activity feed |
-
-### Bugs found and fixed along the way
-
-| | |
-| --- | --- |
-| Settlement failure still disclosed identity | verify runs before the work, settle after — a payment that verified but failed to broadcast handed over the identity for free. `settleAndRespond` now returns 402 and withholds the payload |
-| EIP-7702 payers got `FiatTokenV2: invalid signature` | USDC routes any address *with code* down EIP-1271. The facilitator now detects delegation up front and says so |
-| Serverless instances did not share profiles | confirmed live (`0 profiles` right after creating two), fixed with the KV adapter |
-| Freshly funded wallets could not spend | Monad budgets gas against 3-block-lagged state; wait for blocks, not receipts |
-| "Switch to Monad Testnet" shown in local mode | the app wanted chain 31337 — the message named the one network that would not work. All network copy now reads `CHAIN_LABEL` |
-| "Create my profile" was dead with no explanation | two required fields are easy to miss; the button now names what is missing |
-
-### What still needs you
-
-| # | Item | Why |
-| --- | --- | --- |
-| 1 | Claim testnet USDC from <https://faucet.circle.com> | needed for staking and the x402 fee — 20 USDC covers ~130 runs |
-| 2 | Rotate the 9Router API key *eventually* | it was briefly readable in this public repo. Fine for testing; not fine if this ever holds real credit |
