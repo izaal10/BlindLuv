@@ -49,22 +49,43 @@ vercel --prod            # redeploy so the new values take effect
 > `NEXT_PUBLIC_*` values are inlined at build time, so changing one requires a
 > redeploy, not just a restart.
 
-### Why you want KV
+### Connecting Upstash Redis (do this before demoing)
 
-`web/src/lib/store.ts` holds profiles off-chain. Without KV it uses an
-in-process `Map` — and **serverless instances do not share memory**, so two
-users can land on different instances and never see each other's profiles.
+`web/src/lib/store.ts` holds profiles off-chain. Without Redis it falls back to
+an in-process `Map` — and **serverless instances do not share memory**, so two
+people can land on different instances and never see each other's profiles.
+This is the single most likely thing to make a live demo look broken.
 
-Fix it in one step: Vercel dashboard → **Storage → Create → Upstash Redis**, then
-"Connect to Project". Vercel injects `KV_REST_API_URL` and `KV_REST_API_TOKEN`
-automatically and the store switches over with no code change. Confirm with:
+Either route works; the code accepts both naming conventions.
+
+**Route A — Upstash console** (you already have an account):
+
+1. <https://console.upstash.com/redis> → **Create Database**
+2. Name it `blindluv`, pick the region nearest your Vercel region, Free tier
+3. Open the database → **REST API** tab → copy `UPSTASH_REDIS_REST_URL` and
+   `UPSTASH_REDIS_REST_TOKEN`
+4. Set them on Vercel:
 
 ```bash
-curl -s https://your-app.vercel.app/api/config | jq .stats.backend   # "kv"
+cd web
+printf 'https://xxx.upstash.io' | vercel env add UPSTASH_REDIS_REST_URL production
+printf 'AXXXaSJ...'             | vercel env add UPSTASH_REDIS_REST_TOKEN production
+vercel --prod                    # env vars only apply to a new deployment
+```
+
+**Route B — Vercel Marketplace**: Vercel dashboard → **Storage → Create →
+Upstash Redis → Connect to Project**. Vercel injects `KV_REST_API_URL` and
+`KV_REST_API_TOKEN` itself; just redeploy.
+
+Confirm:
+
+```bash
+curl -s https://blindluv-app.vercel.app/api/config | jq .stats.backend   # "kv"
 ```
 
 Records carry a 7-day TTL (`KV_TTL_SECONDS`) so a public demo does not
-accumulate personal data indefinitely.
+accumulate personal data indefinitely. The free tier is far more than this
+needs — a profile is well under a kilobyte.
 
 ### The localhost trap
 
@@ -79,13 +100,41 @@ rather than erroring. Expose 9Router publicly first.
 
 ### Fund the operator wallet
 
-Deployment needs testnet MON. The public faucet is captcha-gated, so this step
-cannot be automated:
+Deployment needs testnet MON in
+`0xeB63Fa41DFf47C09D68E2Ad3582299F81da5f72f`.
 
-- <https://faucet.monad.xyz> — paste the operator address
-- Accounts under 10 MON are throttled to one transaction per ~1.2s
-  ([reserve balance](https://docs.monad.xyz/developer-essentials/reserve-balance)),
-  so fund above 10 MON if you plan to fire transactions back to back.
+**The faucet captcha is not really the obstacle — you probably don't need the
+faucet at all.** The captcha is an anti-abuse control and shouldn't be worked
+around, but there is a simpler path: if your own MetaMask already holds testnet
+MON, just send some across. It is the same testnet money.
+
+```
+MetaMask → Monad Testnet → Send
+  to:     0xeB63Fa41DFf47C09D68E2Ad3582299F81da5f72f
+  amount: 15 MON
+```
+
+That covers the contract deploy, `setAgent`, and a long run of agent sessions
+and x402 settlements.
+
+If your wallet is also empty, claim once in the browser — the captcha only
+blocks scripts, not you:
+
+- <https://faucet.monad.xyz> — claim to **your own** address, then forward
+- Alternatives if it is rate-limited: the Monad Discord `#faucet` channel, or
+  any of the third-party Monad testnet faucets
+
+**Aim above 10 MON.** Below that, Monad's
+[reserve balance](https://docs.monad.xyz/developer-essentials/reserve-balance)
+rule throttles an account to one transaction per ~1.2s, which makes the agent
+feel broken when it opens sessions back to back.
+
+Check it landed:
+
+```bash
+cast balance 0xeB63Fa41DFf47C09D68E2Ad3582299F81da5f72f \
+  --rpc-url https://testnet-rpc.monad.xyz
+```
 
 ```bash
 export PATH="$HOME/.foundry/bin:$PATH"
