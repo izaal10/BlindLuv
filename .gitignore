@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+contracts/lib/
+
+# build output
+web/.next/
+web/out/
+contracts/out/
+contracts/cache/
+contracts/broadcast/
+
+# env
+.env
+.env.local
+.env*.local
+
+# misc
+.DS_Store
+*.log
+web/next-env.d.ts
+web/.next-env.d.ts

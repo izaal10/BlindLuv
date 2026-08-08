@@ -1,0 +1,270 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------
+   Blind402 design system — v2, bold & passionate.
+   Scarlet leads; wine, gold and coral only ever mark function.
+   Ported from Blind402_Design_System.html.
+   ------------------------------------------------------------------ */
+:root {
+  --bg: #fff6f3;
+  --bg-2: #ffeae3;
+  --surface-1: #ffffff;
+  --surface-2: #fff1ec;
+  --border: rgba(122, 18, 32, 0.14);
+  --border-strong: rgba(122, 18, 32, 0.3);
+
+  /* dominant: bright passionate red */
+  --rose: #e8232f;
+  --rose-deep: #a8121f;
+  --rose-pale: #ffcad0;
+
+  /* economic / stake */
+  --gold: #d98f1f;
+  --gold-deep: #9c6812;
+  --gold-pale: #fbe7c4;
+
+  /* verified / success — warm coral, stays in the red family */
+  --coral: #ff6a45;
+  --coral-deep: #c8471f;
+  --coral-pale: #ffdcce;
+
+  /* wallet / on-chain — deep wine */
+  --wine: #7a1220;
+  --wine-deep: #4a0b14;
+  --wine-pale: #f0c9ce;
+
+  --text-primary: #3a0a10;
+  --text-secondary: #8a4650;
+  --text-muted: #b98890;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-bg-2: var(--bg-2);
+  --color-surface: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--border);
+  --color-line-strong: var(--border-strong);
+
+  --color-rose: var(--rose);
+  --color-rose-deep: var(--rose-deep);
+  --color-rose-pale: var(--rose-pale);
+  --color-gold: var(--gold);
+  --color-gold-deep: var(--gold-deep);
+  --color-gold-pale: var(--gold-pale);
+  --color-coral: var(--coral);
+  --color-coral-deep: var(--coral-deep);
+  --color-coral-pale: var(--coral-pale);
+  --color-wine: var(--wine);
+  --color-wine-deep: var(--wine-deep);
+  --color-wine-pale: var(--wine-pale);
+
+  --color-ink: var(--text-primary);
+  --color-ink-2: var(--text-secondary);
+  --color-ink-3: var(--text-muted);
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --font-sans: var(--font-inter), system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+::selection {
+  background: var(--rose);
+  color: #ffffff;
+}
+
+/* ---------- shared primitives ---------- */
+
+.eyebrow {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.eyebrow::before {
+  content: "";
+  width: 18px;
+  height: 1px;
+  background: var(--rose);
+  display: inline-block;
+  flex: none;
+}
+
+.display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.06;
+}
+.display em {
+  font-style: italic;
+  font-weight: 500;
+  color: var(--rose);
+}
+
+.mono {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+}
+
+.tag {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 11.5px;
+  padding: 6px 12px;
+  border-radius: 100px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-secondary);
+}
+
+.chip {
+  font-size: 10.5px;
+  padding: 4px 9px;
+  border-radius: 100px;
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  white-space: nowrap;
+}
+.chip-rose {
+  background: rgba(232, 35, 47, 0.13);
+  color: var(--rose-deep);
+}
+.chip-gold {
+  background: rgba(217, 143, 31, 0.16);
+  color: var(--gold-deep);
+}
+.chip-coral {
+  background: rgba(255, 106, 69, 0.16);
+  color: var(--coral-deep);
+}
+.chip-wine {
+  background: rgba(122, 18, 32, 0.12);
+  color: var(--wine);
+}
+
+.btn {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 11px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--text-primary);
+  text-align: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.btn-primary {
+  background: var(--rose);
+  border-color: var(--rose);
+  color: #ffffff;
+}
+.btn-wallet {
+  background: var(--wine);
+  border-color: var(--wine);
+  color: #fff3ee;
+}
+.btn-gold {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #fffaf0;
+}
+
+.field {
+  width: 100%;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 13px;
+  font-size: 14px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+.field:focus {
+  border-color: var(--rose);
+}
+.field::placeholder {
+  color: var(--text-muted);
+}
+
+.label {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+}
+.row .k {
+  color: var(--text-secondary);
+}
+.row .v {
+  font-family: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+/* Blur that lifts only once payment clears — the core visual metaphor. */
+.veiled {
+  filter: blur(7px);
+  opacity: 0.7;
+  user-select: none;
+  transition: filter 0.6s ease, opacity 0.6s ease;
+}
+.unveiled {
+  filter: blur(0);
+  opacity: 1;
+}
+
+@keyframes pulse-rose {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.45;
+  }
+}
+.pulsing {
+  animation: pulse-rose 1.4s ease-in-out infinite;
+}
