@@ -65,7 +65,7 @@ export function Header() {
     >
       <div className="mx-auto flex max-w-[1120px] items-center justify-between gap-3 px-6 py-4 sm:px-8">
         <div className="flex items-center gap-2.5">
-          <Image src="/logo.svg" alt="" width={30} height={30} priority />
+          <Image src="/logo.png" alt="" width={34} height={34} priority />
           <span className="display text-[19px] font-semibold">
             Blind<span className="text-[var(--rose)]">Luv</span>
           </span>

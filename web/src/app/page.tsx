@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useMemo, useState } from "react";
 import type { Address, Hex } from "viem";
@@ -342,6 +343,14 @@ export default function Home() {
           />
           <div className="relative grid items-center gap-12 lg:grid-cols-[1.1fr_0.9fr]">
             <div>
+              <Image
+                src="/logo.png"
+                alt="BlindLuv — two blindfolded faces forming a heart"
+                width={128}
+                height={128}
+                priority
+                className="mb-5 h-[92px] w-[92px] sm:h-[112px] sm:w-[112px]"
+              />
               <div className="eyebrow">Autonomous privacy dating agent</div>
               <h1 className="display my-5 text-[clamp(36px,5.2vw,56px)]">
                 Anonymous until
