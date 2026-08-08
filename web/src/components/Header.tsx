@@ -7,7 +7,7 @@ import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { CHAIN_ID, CHAIN_LABEL, RPC_URL, shortAddress } from "@/lib/chain";
 import { useIsHydrated } from "@/lib/useIsHydrated";
 import { addAppChain } from "@/lib/wagmi";
-import { pickWallets } from "@/lib/wallets";
+import { pickWallets, walletLabel } from "@/lib/wallets";
 
 export function Header() {
   const { address, isConnected, chainId } = useAccount();
@@ -99,7 +99,7 @@ export function Header() {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={c.icon} alt="" width={17} height={17} className="rounded-[4px]" />
                     ) : null}
-                    {c.name}
+                    {walletLabel(c)}
                   </button>
                 ))
               ) : (

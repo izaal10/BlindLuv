@@ -5,8 +5,29 @@ import { useConnect } from "wagmi";
 
 import { CHAIN_ID, CHAIN_LABEL } from "@/lib/chain";
 import { addAppChain } from "@/lib/wagmi";
-import { pickWallets } from "@/lib/wallets";
+import { describeInjected, pickWallets, rescanWallets, walletLabel } from "@/lib/wallets";
 import { useMemo, useState } from "react";
+
+function isProviderNotFound(error: unknown): boolean {
+  return error instanceof Error && /provider not found/i.test(error.message);
+}
+
+/**
+ * wagmi's "Provider not found." is accurate and useless — it names no cause and
+ * suggests no action. When several extensions are installed they fight over
+ * `window.ethereum`, and the loser becomes unreachable through that path even
+ * though it is installed and unlocked. That is a fixable situation, so say so.
+ */
+function explainConnectError(error: unknown): string {
+  if (!isProviderNotFound(error)) {
+    return error instanceof Error ? error.message : "Could not connect.";
+  }
+  return (
+    "That wallet is installed but did not answer — another extension has taken over the page's wallet slot. " +
+    "Either connect with one of the other wallets listed above, or open that extension's settings and turn off " +
+    "its default-wallet option, then reload."
+  );
+}
 
 /**
  * The whole product is gated on a wallet, so an unconnected visitor gets one
@@ -16,8 +37,15 @@ import { useMemo, useState } from "react";
 export function ConnectGate() {
   const { connectors, connect, isPending, error } = useConnect();
   const [addError, setAddError] = useState<string | null>(null);
+  const [rescanned, setRescanned] = useState(false);
 
   const wallets = useMemo(() => pickWallets(connectors), [connectors]);
+
+  const rescan = () => {
+    rescanWallets();
+    setRescanned(true);
+    setTimeout(() => setRescanned(false), 2500);
+  };
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-220px)] max-w-[520px] flex-col items-center justify-center px-6 text-center">
@@ -56,7 +84,7 @@ export function ConnectGate() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={c.icon} alt="" width={18} height={18} className="rounded-[4px]" />
               ) : null}
-              {isPending ? "Connecting…" : `Connect ${c.name}`}
+              {isPending ? "Connecting…" : `Connect ${walletLabel(c)}`}
             </button>
           ))
         ) : (
@@ -83,13 +111,20 @@ export function ConnectGate() {
           Add {CHAIN_LABEL} to your wallet
         </button>
 
+        <button className="btn mt-2 w-full !py-2 text-[12px]" onClick={rescan}>
+          {rescanned ? "Rescanned — new wallets appear above" : "Don't see your wallet? Rescan"}
+        </button>
+
         {(error || addError) && (
-          <p
-            className="mt-3 rounded-[10px] px-3 py-2 text-left text-[12px]"
+          <div
+            className="mt-3 rounded-[10px] px-3 py-2.5 text-left text-[12px] leading-[1.55]"
             style={{ background: "rgba(232,35,47,0.09)", color: "var(--rose-deep)" }}
           >
-            {addError ?? error?.message}
-          </p>
+            {addError ?? explainConnectError(error)}
+            {!addError && isProviderNotFound(error) ? (
+              <p className="mono mt-2 text-[10.5px] opacity-80">{describeInjected()}</p>
+            ) : null}
+          </div>
         )}
       </div>
 
