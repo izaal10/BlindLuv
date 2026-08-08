@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Address } from "viem";
 import { useSignMessage } from "wagmi";
 
 import { notify, setUnreadBadge } from "@/lib/notify";
+import { usePersisted } from "@/lib/persist";
 
 interface ChatMessage {
   id: string;
@@ -15,41 +16,6 @@ interface ChatMessage {
 
 const MAX_BODY = 600;
 const POLL_MS = 4_000;
-
-/** Fired when we write the token, so the hook below re-reads it. */
-const TOKEN_EVENT = "blindluv:chat-token";
-
-function writeToken(key: string, value: string | null) {
-  if (value === null) sessionStorage.removeItem(key);
-  else sessionStorage.setItem(key, value);
-  window.dispatchEvent(new Event(TOKEN_EVENT));
-}
-
-/**
- * Read the token straight from `sessionStorage` as an external store.
- *
- * The obvious version — `useState(null)` plus an effect that reads storage and
- * calls `setToken` — renders once with the wrong answer and then corrects
- * itself, which is exactly the "set state in an effect" pattern React now warns
- * about. `useSyncExternalStore` has a server snapshot built in, so SSR gets a
- * definite `null` and the client gets the real value on its first paint.
- */
-function useStoredToken(key: string): string | null {
-  const subscribe = useCallback((onChange: () => void) => {
-    window.addEventListener(TOKEN_EVENT, onChange);
-    window.addEventListener("storage", onChange);
-    return () => {
-      window.removeEventListener(TOKEN_EVENT, onChange);
-      window.removeEventListener("storage", onChange);
-    };
-  }, []);
-
-  return useSyncExternalStore(
-    subscribe,
-    () => sessionStorage.getItem(key),
-    () => null,
-  );
-}
 
 /**
  * The conversation, available once both people have staked and the identities
@@ -79,8 +45,9 @@ export function Chat({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // sessionStorage, not localStorage: closing the tab ends the grant.
   const storageKey = `blindluv:chat-token:${sessionId}:${me.toLowerCase()}`;
-  const token = useStoredToken(storageKey);
+  const [token, setToken] = usePersisted<string | null>("session", storageKey, null);
   const scroller = useRef<HTMLDivElement>(null);
 
   /** Everything the user has already been shown, so we only alert on the new. */
@@ -106,13 +73,13 @@ export function Chat({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Could not open the conversation.");
 
-      writeToken(storageKey, json.token);
+      setToken(json.token);
     } catch (e) {
       setError(e instanceof Error ? e.message.split("\n")[0].slice(0, 200) : "Could not sign in.");
     } finally {
       setBusy(false);
     }
-  }, [me, sessionId, signMessageAsync, storageKey]);
+  }, [me, sessionId, signMessageAsync, setToken]);
 
   /** Fold a fetched list into state, alerting only on messages from the other side. */
   const absorb = useCallback(
@@ -151,7 +118,7 @@ export function Chat({
         if (res.status === 401) {
           // The signing secret rotates when the server restarts; ask again
           // rather than polling forever against a token that cannot work.
-          if (live) writeToken(storageKey, null);
+          if (live) setToken(null);
           return;
         }
         const json = await res.json();
@@ -167,7 +134,7 @@ export function Chat({
       live = false;
       clearInterval(timer);
     };
-  }, [token, sessionId, storageKey, absorb]);
+  }, [token, sessionId, setToken, absorb]);
 
   /** Clear the badge when the tab comes back into view. */
   useEffect(() => {

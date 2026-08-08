@@ -3,6 +3,8 @@ import { createPublicClient, http, isAddress, type Address } from "viem";
 
 import { blindluvAbi } from "@/lib/abi";
 import { BLINDLUV_ADDRESS, CHAIN, parseUsdc } from "@/lib/chain";
+import { bearer, readToken } from "@/lib/chatAuth";
+import { requireUnlockedSession } from "@/lib/sessionGuard";
 import { getMatch, getProfile, markPaid } from "@/lib/store";
 import { requirePayment, settleAndRespond } from "@/lib/x402/gate";
 
@@ -43,6 +45,55 @@ export async function POST(request: Request) {
   const isParticipant = [match.a, match.b].some((p) => p.toLowerCase() === caller.toLowerCase());
   if (!isParticipant) {
     return NextResponse.json({ error: "You are not part of this match." }, { status: 403 });
+  }
+
+  /**
+   * Already paid for this one? Then do not charge again.
+   *
+   * The disclosure lives in browser state, so closing the tab used to mean
+   * paying a second time for something you had already bought. Charging twice
+   * for the same thing is a bug, not a policy.
+   *
+   * The catch is that "already paid" cannot be granted on the strength of an
+   * address in a request body — that would let anyone name a payer and collect
+   * their reveal for free, which is precisely the disclosure this endpoint
+   * exists to guard. So it needs the same proof chat does: a bearer token over
+   * a signature. No token, no shortcut, and the x402 gate below runs as usual.
+   */
+  if (match.sessionId) {
+    const proven = readToken(bearer(request), match.sessionId);
+    const alreadyPaid =
+      proven &&
+      proven.toLowerCase() === caller.toLowerCase() &&
+      match.paidBy.some((p) => p.toLowerCase() === proven.toLowerCase());
+
+    if (alreadyPaid) {
+      const check = await requireUnlockedSession(match.sessionId, proven);
+      if (!check.ok) return NextResponse.json({ error: check.error }, { status: check.status });
+
+      const counterparty = caller.toLowerCase() === match.a.toLowerCase() ? match.b : match.a;
+      const theirs = await getProfile(counterparty);
+      if (!theirs) {
+        return NextResponse.json({ error: "Counterparty profile is no longer available." }, { status: 410 });
+      }
+
+      return NextResponse.json(
+        {
+          matchId,
+          sessionId: match.sessionId,
+          revealed: {
+            address: theirs.address,
+            displayName: theirs.reveal.displayName,
+            contact: theirs.reveal.contact,
+            city: theirs.city,
+            interests: theirs.profile.interests,
+          },
+          score: match.compatibility.score,
+          alreadyPaid: true,
+        },
+        { headers: { "Cache-Control": "no-store" } },
+      );
+    }
   }
 
   // Gate 1 — x402. Verification happens before any work is done; settlement

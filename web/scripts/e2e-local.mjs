@@ -202,6 +202,18 @@ async function main() {
   ok("match is bob", match?.counterparty?.toLowerCase() === bob.address.toLowerCase());
   ok("scored by the AI", match?.source === "router", `source=${match?.source} score=${match?.score}`);
 
+  // ---- 2b. what a reload would find --------------------------------------
+  console.log("\n2b. state survives a reload");
+  const stateA = await fetch(`${APP}/api/state?address=${alice.address}`).then((r) => r.json());
+  ok("profile comes back from the server", stateA.profile?.commitment === a.json.commitment);
+  ok("age and range come back", stateA.profile?.age === 29 && stateA.profile?.ageMax === 38);
+  ok("matches come back without re-scoring", stateA.matches?.length === 1, `${stateA.matches?.length} match(es)`);
+  ok(
+    "a reload still discloses nothing identifying",
+    stateA.profile?.displayName === undefined &&
+      stateA.matches?.every((m) => m.displayName === undefined && m.contact === undefined),
+  );
+
   // ---- 3. agent opens the session on-chain -------------------------------
   console.log("\n3. agent opens session");
   const s = await post("/api/session/open", { matchId: match.id, address: alice.address });
@@ -324,6 +336,24 @@ async function main() {
     "the sender is the signed wallet, not a body field",
     bobSees.messages?.[0]?.from?.toLowerCase() === alice.address.toLowerCase(),
   );
+
+  // ---- 5c. the session survives a reload too, and so does the reveal ------
+  console.log("\n5c. session + paid reveal survive a reload");
+  const stateAfter = await fetch(`${APP}/api/state?address=${alice.address}`).then((r) => r.json());
+  ok("the open session comes back", stateAfter.session?.sessionId === sessionId.toString(), `#${stateAfter.session?.sessionId}`);
+  ok("the match is flagged as paid", stateAfter.matches?.[0]?.paid === true);
+
+  // Having paid once, a proven wallet gets the identity back without paying
+  // again — but only with proof. The same request without the token must 402.
+  const freeAgain = await post(
+    "/api/reveal",
+    { matchId: match.id, address: alice.address },
+    { Authorization: `Bearer ${aliceToken}` },
+  );
+  ok("a proven re-reveal is free", freeAgain.status === 200 && freeAgain.json?.alreadyPaid === true, freeAgain.json?.error);
+
+  const unproven = await post("/api/reveal", { matchId: match.id, address: alice.address });
+  ok("without proof it still charges", unproven.status === 402, `status ${unproven.status}`);
 
   // ---- 6. concierge -------------------------------------------------------
   console.log("\n6. concierge");

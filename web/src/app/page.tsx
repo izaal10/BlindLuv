@@ -28,6 +28,7 @@ import {
 import { DEFAULT_AGE_MAX, DEFAULT_AGE_MIN, MAX_AGE, MIN_AGE, parseAge } from "@/lib/age";
 import { GENDERS } from "@/lib/gender";
 import { askToNotify, notify } from "@/lib/notify";
+import { readJson, usePersisted } from "@/lib/persist";
 import { useIsHydrated } from "@/lib/useIsHydrated";
 import { PaymentError, fetchWithPayment } from "@/lib/x402/client";
 import type { PaymentRequirements, SettleResponse } from "@/lib/x402/types";
@@ -45,6 +46,29 @@ interface DatePlan {
   opener: string;
   source: "router" | "heuristic";
 }
+
+/** What `GET /api/state` returns: the server's memory of this wallet. */
+interface ServerState {
+  profile: {
+    interests: string[];
+    blurb: string;
+    dealBreakers: string[];
+    source: "router" | "heuristic";
+    city: string;
+    gender: string;
+    seeking: string[];
+    age: number;
+    ageMin: number;
+    ageMax: number;
+    commitment: string;
+    createdAt: number;
+  } | null;
+  matches: BlindMatch[];
+  session: { sessionId: string; matchId: string } | null;
+}
+
+/** Stable identity, so the derived `matches` does not change on every render. */
+const EMPTY_MATCHES: BlindMatch[] = [];
 
 type Busy = null | "profile" | "commit" | "discover" | "open" | "approve" | "stake" | "reveal" | "concierge" | "confirm";
 
@@ -66,32 +90,89 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
-  // ---- step 1: profile. Four things, and only two are about you. ----------
+  /**
+   * What the server already knows about this wallet.
+   *
+   * The flow used to live entirely in React state, so a reload dropped the
+   * profile, the matches and the open session, and the only way forward was to
+   * type the form in again. But almost none of that was ever really the
+   * client's: the profile, the scored matches and the session id are all on the
+   * server, and the browser was just holding a pointer to them.
+   *
+   * So most of the state below is *derived* — a local value if this tab has one,
+   * the server's answer otherwise. A reload loses the local half and falls back
+   * to the server's, which is the whole fix.
+   */
+  const { data: saved, refetch: refetchSaved } = useQuery<ServerState>({
+    queryKey: ["state", address],
+    queryFn: async () => (await fetch(`/api/state?address=${address}`)).json(),
+    enabled: Boolean(address),
+    staleTime: 10_000,
+  });
+
+  // ---- step 1: profile ----------------------------------------------------
   const [form, setForm] = useState({ city: "", about: "", dealBreakers: "", displayName: "", contact: "" });
   const [gender, setGender] = useState("");
   const [seeking, setSeeking] = useState<string[]>([]);
   const [age, setAge] = useState("");
   const [ageMin, setAgeMin] = useState(String(DEFAULT_AGE_MIN));
   const [ageMax, setAgeMax] = useState(String(DEFAULT_AGE_MAX));
-  const [commitment, setCommitment] = useState<Hex | null>(null);
-  const [profileTags, setProfileTags] = useState<string[]>([]);
-  const [profileSource, setProfileSource] = useState<"router" | "heuristic" | null>(null);
-  const [commitTx, setCommitTx] = useState<string | null>(null);
+  const [freshCommitment, setFreshCommitment] = useState<Hex | null>(null);
+  const [freshTags, setFreshTags] = useState<string[] | null>(null);
+  const [freshSource, setFreshSource] = useState<"router" | "heuristic" | null>(null);
+  /** Set only when the user asks to replace a profile the server already has. */
+  const [rewriting, setRewriting] = useState(false);
+
+  const savedProfile = saved?.profile ?? null;
+  const commitment = freshCommitment ?? (savedProfile?.commitment as Hex | undefined) ?? null;
+  const profileTags = freshTags ?? savedProfile?.interests ?? [];
+  const profileSource = freshSource ?? savedProfile?.source ?? null;
+  /** Show the form when there is nothing saved, or when they chose to redo it. */
+  const writingProfile = !savedProfile || rewriting;
 
   // ---- step 2: matches ----------------------------------------------------
-  const [matches, setMatches] = useState<BlindMatch[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [discovered, setDiscovered] = useState<BlindMatch[] | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+
+  const matches = discovered ?? saved?.matches ?? EMPTY_MATCHES;
+  const selectedId = picked ?? saved?.session?.matchId ?? null;
 
   // ---- step 3: session + stake -------------------------------------------
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [openTx, setOpenTx] = useState<string | null>(null);
-  const [stakeTx, setStakeTx] = useState<string | null>(null);
+  const [openedSession, setOpenedSession] = useState<string | null>(null);
   const [stakeAmount, setStakeAmount] = useState<bigint | null>(null);
 
+  const sessionId = openedSession ?? saved?.session?.sessionId ?? null;
+
+  /**
+   * Transaction hashes and the paid-for disclosure are the only things with no
+   * server-side home, so they are the only things kept in browser storage —
+   * scoped per wallet, and per match where that matters. `localStorage` rather
+   * than `sessionStorage` because losing a reveal you already paid 0.05 USDC
+   * for, just by closing a tab, is not a reasonable thing to do to someone.
+   */
+  const walletKey = address ? address.toLowerCase() : null;
+  const matchKey = walletKey && selectedId ? `${walletKey}:${selectedId}` : null;
+
+  const [commitTx, setCommitTx] = usePersisted<string | null>(
+    "local",
+    walletKey && `blindluv:committx:${walletKey}`,
+    null,
+  );
+  const [openTx, setOpenTx] = usePersisted<string | null>("local", matchKey && `blindluv:opentx:${matchKey}`, null);
+  const [stakeTx, setStakeTx] = usePersisted<string | null>("local", matchKey && `blindluv:staketx:${matchKey}`, null);
+
   // ---- step 4: reveal -----------------------------------------------------
-  const [revealed, setRevealed] = useState<Revealed | null>(null);
-  const [revealReceipt, setRevealReceipt] = useState<SettleResponse | null>(null);
-  const [plan, setPlan] = useState<DatePlan | null>(null);
+  const [revealed, setRevealed] = usePersisted<Revealed | null>(
+    "local",
+    matchKey && `blindluv:revealed:${matchKey}`,
+    null,
+  );
+  const [revealReceipt, setRevealReceipt] = usePersisted<SettleResponse | null>(
+    "local",
+    matchKey && `blindluv:receipt:${matchKey}`,
+    null,
+  );
+  const [plan, setPlan] = usePersisted<DatePlan | null>("local", matchKey && `blindluv:plan:${matchKey}`, null);
 
   const { data: config } = useQuery<{
     ai?: { model: string | null };
@@ -204,9 +285,12 @@ export default function Home() {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? "Could not build your profile.");
-    setCommitment(json.commitment);
-    setProfileTags(json.profile.interests ?? []);
-    setProfileSource(json.profile.source);
+    setFreshCommitment(json.commitment);
+    setFreshTags(json.profile.interests ?? []);
+    setFreshSource(json.profile.source);
+    setRewriting(false);
+    // The server now has it, so a reload can pick it up from there.
+    await refetchSaved();
     setNote("Profile built. Your answers stayed on the server — only a hash of them goes on-chain.");
   });
 
@@ -239,8 +323,8 @@ export default function Home() {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? "Discovery failed.");
-    setMatches(json.matches ?? []);
-    setSelectedId(json.matches?.[0]?.id ?? null);
+    setDiscovered(json.matches ?? []);
+    setPicked(json.matches?.[0]?.id ?? null);
     if (!json.matches?.length) {
       setNote(json.note ?? "Nobody else in your city yet — create a second profile from another wallet to try the flow.");
     } else {
@@ -260,9 +344,11 @@ export default function Home() {
     });
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? "The agent could not open a session.");
-    setSessionId(json.sessionId);
+    setOpenedSession(json.sessionId);
     setOpenTx(json.transaction ?? null);
     setStakeAmount(json.stakeAmount ? BigInt(json.stakeAmount) : null);
+    // The session id now lives on the match record, so a reload finds it.
+    await refetchSaved();
   });
 
   const approveAndStake = guard("stake", async () => {
@@ -344,6 +430,32 @@ export default function Home() {
 
   const reveal = guard("reveal", async () => {
     if (!selected || !walletClient || !address) throw new Error("Pick someone first.");
+
+    /**
+     * If this wallet already paid for this match, the server will hand the
+     * identity back for free — but only on proof, not on a claimed address.
+     * The chat token is exactly that proof, so send it when we happen to have
+     * one. Without it the x402 gate below runs normally; nothing is skipped
+     * silently.
+     */
+    const proof = sessionId
+      ? readJson<string | null>("session", `blindluv:chat-token:${sessionId}:${address.toLowerCase()}`, null)
+      : null;
+
+    if (proof) {
+      const res = await fetch("/api/reveal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${proof}` },
+        body: JSON.stringify({ matchId: selected.id, address }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        setRevealed(json.revealed);
+        setNote("You already paid for this one — no second charge.");
+        return;
+      }
+    }
+
     const { data, payment } = await fetchWithPayment<{ revealed: Revealed }>(
       "/api/reveal",
       { matchId: selected.id, address },
@@ -420,7 +532,71 @@ export default function Home() {
         <div className="mt-8 grid gap-10 lg:grid-cols-[1.35fr_0.65fr]">
           <div>
             {/* ------------------------------------------------ 1. profile */}
-            {step === 0 ? (
+            {step === 0 && !writingProfile && savedProfile ? (
+              /**
+               * A profile the server already holds.
+               *
+               * Raw answers are never stored — only what the agent derived from
+               * them — so the form cannot be repopulated word for word. It does
+               * not need to be: what a returning visitor needs is to *not* start
+               * over, and to get on with matching.
+               */
+              <section>
+                <h2 className="display mb-2 text-[26px]">Your blind profile</h2>
+                <p className="mb-7 max-w-[56ch] text-[14px] text-[var(--text-secondary)]">
+                  Already written and stored. Nothing here reached the chain except its hash.
+                </p>
+
+                <div className="card p-6">
+                  <p className="mb-4 text-[15px] leading-[1.6]">{savedProfile.blurb}</p>
+
+                  <div className="mb-5 flex flex-wrap gap-1.5">
+                    {savedProfile.interests.map((t) => (
+                      <Chip key={t}>{t}</Chip>
+                    ))}
+                  </div>
+
+                  <Row k="City" v={savedProfile.city} />
+                  <Row k="You are" v={savedProfile.gender} />
+                  <Row
+                    k="Meeting"
+                    v={`${savedProfile.seeking.length ? savedProfile.seeking.join(", ") : "anyone"}, aged ${savedProfile.ageMin}–${savedProfile.ageMax}`}
+                  />
+                  <Row k="Your age" v={String(savedProfile.age)} />
+                  <Row k="Built by" v={savedProfile.source === "router" ? modelLabel : "deterministic fallback"} />
+
+                  <div className="mt-5 flex gap-2">
+                    <button className="btn btn-primary flex-1" disabled={busy !== null} onClick={discover}>
+                      {busy === "discover" ? "Agent is reading profiles…" : "Find who I match with"}
+                    </button>
+                    <button className="btn flex-none" disabled={busy !== null} onClick={() => setRewriting(true)}>
+                      Rewrite it
+                    </button>
+                  </div>
+
+                  {!commitTx ? (
+                    <button
+                      className="btn btn-gold mt-2 w-full"
+                      disabled={busy !== null || wrongChain || !contractReady}
+                      onClick={publishCommitment}
+                    >
+                      {busy === "commit" ? "Publishing…" : "Publish commitment on Monad"}
+                    </button>
+                  ) : (
+                    <a
+                      className="mono mt-3 block text-center text-[11px] underline decoration-dotted"
+                      href={txUrl(commitTx)}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      commitment published
+                    </a>
+                  )}
+                </div>
+              </section>
+            ) : null}
+
+            {step === 0 && writingProfile ? (
               <section>
                 <h2 className="display mb-2 text-[26px]">Tell us who you actually are</h2>
                 <p className="mb-7 max-w-[56ch] text-[14px] text-[var(--text-secondary)]">
@@ -604,7 +780,7 @@ export default function Home() {
                           match={m}
                           revealed={Boolean(revealed && selectedId === m.id)}
                           selected={selectedId === m.id}
-                          onSelect={() => setSelectedId(m.id)}
+                          onSelect={() => setPicked(m.id)}
                           modelLabel={modelLabel}
                         />
                       ))}

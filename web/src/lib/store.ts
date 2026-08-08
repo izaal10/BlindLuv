@@ -131,6 +131,23 @@ export async function getMatch(id: string): Promise<StoredMatch | null> {
   return kvGet<StoredMatch>(MATCH_KEY(id));
 }
 
+/**
+ * Every match this address is part of, newest first.
+ *
+ * Scans the whole match index. That is fine at this size and keeps the store
+ * to one index instead of a per-address one that could drift out of sync with
+ * it — worth revisiting if this ever holds more than a few thousand matches.
+ */
+export async function listMatchesFor(address: string): Promise<StoredMatch[]> {
+  const ids = await kvSetMembers(MATCH_INDEX);
+  const records = await kvMultiGet<StoredMatch>(ids.map(MATCH_KEY));
+  const me = address.toLowerCase();
+  return records
+    .filter((m): m is StoredMatch => m !== null)
+    .filter((m) => m.a.toLowerCase() === me || m.b.toLowerCase() === me)
+    .sort((x, y) => y.createdAt - x.createdAt);
+}
+
 export async function markPaid(id: string, payer: Address): Promise<void> {
   const match = await getMatch(id);
   if (!match) return;
